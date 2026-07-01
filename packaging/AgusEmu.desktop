@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AgusEmu
+Comment=Jalankan aplikasi Windows via GE-Proton
+Exec=agusemu
+Icon=agusemu
+Categories=Game;Utility;
+Terminal=false
