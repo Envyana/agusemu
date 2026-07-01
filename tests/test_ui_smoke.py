@@ -102,3 +102,14 @@ def test_sidebar_groups_by_category(tmp_path, monkeypatch):
     # baris pertama harus kategori 'app' (diurutkan app dulu)
     first = win.listbox.get_first_child()
     assert first._category == "app"
+
+
+def test_home_button_shows_empty_state(tmp_path, monkeypatch):
+    monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
+    from agusemu.ui.main_window import MainWindow
+    from gi.repository import Adw as _Adw, Gtk as _Gtk
+    app = _Adw.Application(application_id="com.patopo.AgusEmu.Home")
+    win = MainWindow(application=app)
+    win._go_home()
+    child = win.content_box.get_first_child()
+    assert isinstance(child, _Adw.StatusPage)

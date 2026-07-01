@@ -49,12 +49,16 @@ class MainWindow(Adw.ApplicationWindow):
         self.content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.content_box.set_vexpand(True)
         self.content_box.append(self._empty_state())
+        home_btn = Gtk.Button(icon_name="go-home-symbolic")
+        home_btn.set_tooltip_text("Home")
+        home_btn.connect("clicked", self._go_home)
         rt_btn = Gtk.Button(icon_name="emblem-system-symbolic")
         rt_btn.set_tooltip_text("Runtime Manager")
         rt_btn.connect("clicked", self._open_runtime_manager)
         content_page = Adw.NavigationPage(
             title="AgusEmu",
-            child=self._chrome("AgusEmu", self.content_box, end_widgets=[rt_btn]))
+            child=self._chrome("AgusEmu", self.content_box,
+                               start_widgets=[home_btn], end_widgets=[rt_btn]))
         self.split.set_content(content_page)
 
         self.toast_overlay = Adw.ToastOverlay()
@@ -104,6 +108,10 @@ class MainWindow(Adw.ApplicationWindow):
             self.content_box.remove(child)
             child = nxt
         self.content_box.append(widget)
+
+    def _go_home(self, *_):
+        self.listbox.unselect_all()
+        self._set_content_child(self._empty_state())
 
     def _header_func(self, row, before):
         cat = getattr(row, "_category", "app")
