@@ -36,8 +36,16 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>The AgusEmu home screen</caption>
+      <caption>Home screen</caption>
       <image>https://raw.githubusercontent.com/Envyana/agusemu/main/flatpak/screenshots/home.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Application details with launch and per-app actions</caption>
+      <image>https://raw.githubusercontent.com/Envyana/agusemu/main/flatpak/screenshots/detail.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Runtime Manager — download GE-Proton versions</caption>
+      <image>https://raw.githubusercontent.com/Envyana/agusemu/main/flatpak/screenshots/runtime-manager.png</image>
     </screenshot>
   </screenshots>
 
