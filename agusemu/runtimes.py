@@ -148,3 +148,36 @@ def download_runtime(release: "Release", progress=None,
         if tmp.exists():
             tmp.unlink()
     return Runtime(name=folder.name, path=str(folder), source="managed")
+
+
+def newest_installed() -> Runtime | None:
+    rts = scan_runtimes()
+    return rts[0] if rts else None
+
+
+def ensure_runtime(name: str = "", progress=None, on_status=None) -> Runtime:
+    """Kembalikan runtime yang siap pakai.
+
+    - Jika `name` diberikan & sudah terpasang -> pakai itu.
+    - Jika `name` kosong & ada runtime terpasang -> pakai yang terbaru.
+    - Jika belum ada yang cocok -> unduh (tag `name` bila ada di rilis, else terbaru).
+    """
+    installed = scan_runtimes()
+    if name:
+        for rt in installed:
+            if rt.name == name:
+                return rt
+    elif installed:
+        return installed[0]
+
+    if on_status:
+        on_status("Mengunduh GE-Proton…")
+    rels = fetch_releases(limit=30)
+    rel = next((r for r in rels if r.tag == name), None) if name else None
+    if rel is None:
+        rel = rels[0] if rels else None
+    if rel is None:
+        raise RuntimeError("Gagal mengambil daftar rilis GE-Proton")
+    if on_status:
+        on_status(f"Mengunduh {rel.tag}…")
+    return download_runtime(rel, progress=progress)

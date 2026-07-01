@@ -26,6 +26,7 @@ cp "$HERE/packaging/AgusEmu.desktop" "$APPDIR/AgusEmu.desktop"
 cp "$HERE/packaging/agusemu-256.png" \
    "$APPDIR/usr/share/icons/hicolor/256x256/apps/agusemu.png"
 cp "$HERE/packaging/agusemu.png" "$APPDIR/agusemu.png"
+cp "$HERE/packaging/agusemu.png" "$APPDIR/.DirIcon"
 
 # 4) AppRun
 cat > "$APPDIR/AppRun" <<'RUNEOF'

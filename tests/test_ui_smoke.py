@@ -76,3 +76,29 @@ def test_logo_asset_and_empty_state(tmp_path, monkeypatch):
     app = Adw.Application(application_id="com.patopo.AgusEmu.Logo")
     win = MainWindow(application=app)
     assert win is not None
+
+
+def test_install_dialog_constructs(tmp_path, monkeypatch):
+    monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
+    from agusemu.models import Runtime
+    from agusemu.ui.install_dialog import InstallDialog
+    dlg = InstallDialog(runtimes=[Runtime("GE-Proton9-27", "/rt/x", "managed")],
+                        on_install=lambda *a: None)
+    assert dlg is not None
+
+
+def test_sidebar_groups_by_category(tmp_path, monkeypatch):
+    monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
+    from agusemu import library
+    from agusemu.models import App
+    from agusemu.ui.main_window import MainWindow
+    library.add_app(App(id="g1", name="Game One", exe_path="/g.exe",
+                        runtime="", prefix="/p/g1", category="game"))
+    library.add_app(App(id="a1", name="App One", exe_path="/a.exe",
+                        runtime="", prefix="/p/a1", category="app"))
+    app = Adw.Application(application_id="com.patopo.AgusEmu.Cat")
+    win = MainWindow(application=app)
+    win.refresh_library()
+    # baris pertama harus kategori 'app' (diurutkan app dulu)
+    first = win.listbox.get_first_child()
+    assert first._category == "app"

@@ -27,3 +27,17 @@ def test_app_with_changes_is_immutable():
 def test_runtime_proton_binary():
     rt = Runtime(name="GE-Proton9-27", path="/rt/GE-Proton9-27", source="managed")
     assert rt.proton_binary().endswith("/GE-Proton9-27/proton")
+
+
+def test_app_category_default_and_backcompat():
+    app = App(id="x", name="X", exe_path="/x.exe", runtime="r", prefix="/p")
+    assert app.category == "app"
+    # entri lama tanpa 'category' tetap terbaca
+    old = {"id": "y", "name": "Y", "exe_path": "/y.exe", "runtime": "r", "prefix": "/p"}
+    assert App.from_dict(old).category == "app"
+
+
+def test_app_category_roundtrip():
+    app = App(id="g", name="G", exe_path="/g.exe", runtime="r",
+              prefix="/p", category="game")
+    assert App.from_dict(app.to_dict()).category == "game"

@@ -12,6 +12,52 @@ from gi.repository import Adw, Gio, Gtk  # noqa: E402
 from .. import config  # noqa: E402
 from ..models import App, Runtime, make_app_id  # noqa: E402
 
+AUTO_LABEL = "Otomatis (unduh GE-Proton terbaru)"
+_CATS = [("app", "Aplikasi sehari-hari"), ("game", "Game")]
+
+
+def build_runtime_row(runtimes: list[Runtime], current: str = ""):
+    """ComboRow runtime dengan opsi Otomatis di indeks 0."""
+    row = Adw.ComboRow(title="Runtime GE-Proton")
+    model = Gtk.StringList()
+    model.append(AUTO_LABEL)
+    for rt in runtimes:
+        model.append(rt.name)
+    row.set_model(model)
+    if current:
+        for i, rt in enumerate(runtimes):
+            if rt.name == current:
+                row.set_selected(i + 1)
+    return row
+
+
+def selected_runtime_name(row, runtimes: list[Runtime]) -> str:
+    idx = row.get_selected()
+    if idx <= 0:
+        return ""  # Otomatis
+    if 1 <= idx <= len(runtimes):
+        return runtimes[idx - 1].name
+    return ""
+
+
+def build_category_row(current: str = "app"):
+    row = Adw.ComboRow(title="Kategori")
+    model = Gtk.StringList()
+    for _key, label in _CATS:
+        model.append(label)
+    row.set_model(model)
+    for i, (key, _label) in enumerate(_CATS):
+        if key == current:
+            row.set_selected(i)
+    return row
+
+
+def selected_category(row) -> str:
+    idx = row.get_selected()
+    if 0 <= idx < len(_CATS):
+        return _CATS[idx][0]
+    return "app"
+
 
 class AddAppDialog(Adw.Dialog):
     def __init__(self, runtimes: list[Runtime], on_save, app: App | None = None):
@@ -45,15 +91,10 @@ class AddAppDialog(Adw.Dialog):
         self.exe_row.add_suffix(pick)
         group.add(self.exe_row)
 
-        self.runtime_row = Adw.ComboRow(title="Runtime GE-Proton")
-        model = Gtk.StringList()
-        for rt in runtimes:
-            model.append(rt.name)
-        self.runtime_row.set_model(model)
-        if app:
-            for i, rt in enumerate(runtimes):
-                if rt.name == app.runtime:
-                    self.runtime_row.set_selected(i)
+        self.category_row = build_category_row(app.category if app else "app")
+        group.add(self.category_row)
+
+        self.runtime_row = build_runtime_row(runtimes, app.runtime if app else "")
         group.add(self.runtime_row)
 
         self.args_row = Adw.EntryRow(title="Argumen (opsional)")
@@ -88,26 +129,23 @@ class AddAppDialog(Adw.Dialog):
 
         dialog.open(self.get_root(), None, done)
 
-    def _selected_runtime_name(self) -> str:
-        idx = self.runtime_row.get_selected()
-        if 0 <= idx < len(self._runtimes):
-            return self._runtimes[idx].name
-        return ""
-
     def _on_save_clicked(self, _btn):
         name = self.name_row.get_text().strip()
         if not name or not self._exe_path:
             return
-        runtime = self._selected_runtime_name()
+        runtime = selected_runtime_name(self.runtime_row, self._runtimes)
+        category = selected_category(self.category_row)
         args = self.args_row.get_text()
         dxvk = self.dxvk_row.get_active()
         if self._app:
             app = self._app.with_changes(name=name, exe_path=self._exe_path,
-                                         runtime=runtime, args=args, dxvk_enabled=dxvk)
+                                         runtime=runtime, args=args,
+                                         dxvk_enabled=dxvk, category=category)
         else:
             app_id = make_app_id(name)
             app = App(id=app_id, name=name, exe_path=self._exe_path, runtime=runtime,
                       prefix=str(config.prefixes_dir() / app_id), args=args,
-                      dxvk_enabled=dxvk, created_at=_dt.date.today().isoformat())
+                      dxvk_enabled=dxvk, category=category,
+                      created_at=_dt.date.today().isoformat())
         self._on_save(app)
         self.close()

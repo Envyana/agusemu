@@ -6,6 +6,8 @@ import re
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
+CATEGORIES = ("app", "game")
+
 
 def make_app_id(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "app"
@@ -24,6 +26,7 @@ class App:
     args: str = ""
     env: dict[str, str] = field(default_factory=dict)
     dxvk_enabled: bool = True
+    category: str = "app"  # "app" | "game"
     created_at: str = ""
 
     def to_dict(self) -> dict:
