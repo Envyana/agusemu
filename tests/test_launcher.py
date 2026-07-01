@@ -41,3 +41,8 @@ def test_build_env_does_not_mutate_base():
 def test_build_command_with_args():
     cmd = launcher.build_command(_app(args='--foo "bar baz"'), "/usr/bin/umu-run")
     assert cmd == ["/usr/bin/umu-run", "/games/a.exe", "--foo", "bar baz"]
+
+
+def test_build_command_msi_uses_msiexec():
+    cmd = launcher.build_command(_app(exe_path="/inst/setup.msi"), "/usr/bin/umu-run")
+    assert cmd == ["/usr/bin/umu-run", "msiexec", "/i", "/inst/setup.msi"]

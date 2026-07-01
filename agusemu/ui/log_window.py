@@ -1,4 +1,4 @@
-"""Jendela log real-time untuk proses umu-run."""
+"""Real-time log window for umu-run processes."""
 from __future__ import annotations
 
 import gi
@@ -31,4 +31,4 @@ class LogWindow(Adw.Window):
         GLib.idle_add(_do)
 
     def mark_finished(self, code: int):
-        self.append_line(f"\n[selesai] exit code = {code}")
+        self.append_line(f"\n[finished] exit code = {code}")

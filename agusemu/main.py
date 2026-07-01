@@ -29,7 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     gi.require_version("Gtk", "4.0")
     gi.require_version("Adw", "1")
     from gi.repository import Adw, Gio
-    from .ui.main_window import MainWindow
+    from .integrate import integrate_appimage
+    from .ui.main_window import LOGO_PATH, MainWindow
+    integrate_appimage(LOGO_PATH)
 
     app = Adw.Application(application_id=APP_ID,
                           flags=Gio.ApplicationFlags.FLAGS_NONE)

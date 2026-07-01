@@ -1,4 +1,4 @@
-"""Dialog tambah/edit aplikasi."""
+"""Add/edit application dialog."""
 from __future__ import annotations
 
 import datetime as _dt
@@ -12,13 +12,22 @@ from gi.repository import Adw, Gio, Gtk  # noqa: E402
 from .. import config  # noqa: E402
 from ..models import App, Runtime, make_app_id  # noqa: E402
 
-AUTO_LABEL = "Otomatis (unduh GE-Proton terbaru)"
-_CATS = [("app", "Aplikasi sehari-hari"), ("game", "Game")]
+AUTO_LABEL = "Automatic (download latest GE-Proton)"
+_CATS = [("app", "Everyday application"), ("game", "Game")]
+
+
+def make_exe_filter():
+    filt = Gtk.FileFilter()
+    filt.set_name("Windows program / installer")
+    filt.add_pattern("*.exe")
+    filt.add_pattern("*.msi")
+    filters = Gio.ListStore.new(Gtk.FileFilter)
+    filters.append(filt)
+    return filters
 
 
 def build_runtime_row(runtimes: list[Runtime], current: str = ""):
-    """ComboRow runtime dengan opsi Otomatis di indeks 0."""
-    row = Adw.ComboRow(title="Runtime GE-Proton")
+    row = Adw.ComboRow(title="GE-Proton runtime")
     model = Gtk.StringList()
     model.append(AUTO_LABEL)
     for rt in runtimes:
@@ -34,14 +43,14 @@ def build_runtime_row(runtimes: list[Runtime], current: str = ""):
 def selected_runtime_name(row, runtimes: list[Runtime]) -> str:
     idx = row.get_selected()
     if idx <= 0:
-        return ""  # Otomatis
+        return ""
     if 1 <= idx <= len(runtimes):
         return runtimes[idx - 1].name
     return ""
 
 
 def build_category_row(current: str = "app"):
-    row = Adw.ComboRow(title="Kategori")
+    row = Adw.ComboRow(title="Category")
     model = Gtk.StringList()
     for _key, label in _CATS:
         model.append(label)
@@ -66,12 +75,12 @@ class AddAppDialog(Adw.Dialog):
         self._app = app
         self._runtimes = runtimes
         self._exe_path = app.exe_path if app else ""
-        self.set_title("Edit Aplikasi" if app else "Tambah Aplikasi")
+        self.set_title("Edit Application" if app else "Add Application")
         self.set_content_width(460)
 
         toolbar = Adw.ToolbarView()
         header = Adw.HeaderBar()
-        save = Gtk.Button(label="Simpan")
+        save = Gtk.Button(label="Save")
         save.add_css_class("suggested-action")
         save.connect("clicked", self._on_save_clicked)
         header.pack_end(save)
@@ -79,14 +88,14 @@ class AddAppDialog(Adw.Dialog):
 
         group = Adw.PreferencesGroup(margin_top=12, margin_bottom=12,
                                      margin_start=12, margin_end=12)
-        self.name_row = Adw.EntryRow(title="Nama")
+        self.name_row = Adw.EntryRow(title="Name")
         if app:
             self.name_row.set_text(app.name)
         group.add(self.name_row)
 
-        self.exe_row = Adw.ActionRow(title="File .exe",
-                                     subtitle=self._exe_path or "Belum dipilih")
-        pick = Gtk.Button(label="Pilih", valign=Gtk.Align.CENTER)
+        self.exe_row = Adw.ActionRow(title="Program (.exe / .msi)",
+                                     subtitle=self._exe_path or "Not selected")
+        pick = Gtk.Button(label="Choose", valign=Gtk.Align.CENTER)
         pick.connect("clicked", self._on_pick_exe)
         self.exe_row.add_suffix(pick)
         group.add(self.exe_row)
@@ -97,12 +106,12 @@ class AddAppDialog(Adw.Dialog):
         self.runtime_row = build_runtime_row(runtimes, app.runtime if app else "")
         group.add(self.runtime_row)
 
-        self.args_row = Adw.EntryRow(title="Argumen (opsional)")
+        self.args_row = Adw.EntryRow(title="Arguments (optional)")
         if app:
             self.args_row.set_text(app.args)
         group.add(self.args_row)
 
-        self.dxvk_row = Adw.SwitchRow(title="Aktifkan DXVK/VKD3D")
+        self.dxvk_row = Adw.SwitchRow(title="Enable DXVK/VKD3D")
         self.dxvk_row.set_active(app.dxvk_enabled if app else True)
         group.add(self.dxvk_row)
 
@@ -110,13 +119,8 @@ class AddAppDialog(Adw.Dialog):
         self.set_child(toolbar)
 
     def _on_pick_exe(self, _btn):
-        dialog = Gtk.FileDialog(title="Pilih file .exe")
-        filt = Gtk.FileFilter()
-        filt.set_name("Executable Windows")
-        filt.add_pattern("*.exe")
-        filters = Gio.ListStore.new(Gtk.FileFilter)
-        filters.append(filt)
-        dialog.set_filters(filters)
+        dialog = Gtk.FileDialog(title="Choose a program (.exe / .msi)")
+        dialog.set_filters(make_exe_filter())
 
         def done(dlg, res):
             try:

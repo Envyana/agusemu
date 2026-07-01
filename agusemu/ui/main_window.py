@@ -1,4 +1,4 @@
-"""Jendela utama AgusEmu."""
+"""AgusEmu main window."""
 from __future__ import annotations
 
 import datetime as _dt
@@ -15,7 +15,7 @@ from .. import config, library  # noqa: E402
 from ..models import App, make_app_id  # noqa: E402
 
 LOGO_PATH = Path(__file__).parent / "assets" / "agusemu.png"
-_CAT_LABEL = {"app": "Aplikasi", "game": "Game"}
+_CAT_LABEL = {"app": "Applications", "game": "Games"}
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -34,10 +34,10 @@ class MainWindow(Adw.ApplicationWindow):
         sidebar_scroll.set_vexpand(True)
 
         add_btn = Gtk.Button(icon_name="list-add-symbolic")
-        add_btn.set_tooltip_text("Tambah aplikasi/game yang sudah siap")
+        add_btn.set_tooltip_text("Add a ready-to-run app/game")
         add_btn.connect("clicked", lambda *_: self._open_add_dialog())
         install_btn = Gtk.Button(icon_name="system-software-install-symbolic")
-        install_btn.set_tooltip_text("Install dari installer .exe")
+        install_btn.set_tooltip_text("Install from an installer (.exe/.msi)")
         install_btn.connect("clicked", lambda *_: self._open_install_dialog())
 
         sidebar_page = Adw.NavigationPage(
@@ -50,7 +50,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.content_box.set_vexpand(True)
         self.content_box.append(self._empty_state())
         rt_btn = Gtk.Button(icon_name="emblem-system-symbolic")
-        rt_btn.set_tooltip_text("Manajer Runtime")
+        rt_btn.set_tooltip_text("Runtime Manager")
         rt_btn.connect("clicked", self._open_runtime_manager)
         content_page = Adw.NavigationPage(
             title="AgusEmu",
@@ -78,7 +78,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _empty_state(self):
         page = Adw.StatusPage(
             title="AgusEmu",
-            description="Tambahkan aplikasi/game .exe, atau install dari installer.")
+            description="Add an app/game .exe, or install from an installer.")
         try:
             page.set_paintable(Gdk.Texture.new_from_filename(str(LOGO_PATH)))
         except Exception:
@@ -98,7 +98,7 @@ class MainWindow(Adw.ApplicationWindow):
         if before is not None and getattr(before, "_category", "app") == cat:
             row.set_header(None)
             return
-        label = Gtk.Label(label=_CAT_LABEL.get(cat, "Aplikasi"), xalign=0,
+        label = Gtk.Label(label=_CAT_LABEL.get(cat, "Applications"), xalign=0,
                           margin_top=10, margin_bottom=4, margin_start=12)
         label.add_css_class("heading")
         label.add_css_class("dim-label")
@@ -156,7 +156,7 @@ class MainWindow(Adw.ApplicationWindow):
             library.add_app(app)
         self.refresh_library()
 
-    # --- install dari installer ---
+    # --- install from installer ---
     def _open_install_dialog(self):
         from .. import runtimes as rt_mod
         from .install_dialog import InstallDialog
@@ -176,7 +176,7 @@ class MainWindow(Adw.ApplicationWindow):
                 rt = rt_mod.ensure_runtime(runtime_name, on_status=log.append_line)
                 tmp = App(id=app_id, name=name, exe_path=installer,
                           runtime=rt.name, prefix=prefix, category=category)
-                log.append_line("Menjalankan installer…")
+                log.append_line("Running installer…")
                 code = launcher.launch(tmp, rt, on_output=log.append_line)
                 log.mark_finished(code)
                 GLib.idle_add(self._after_install, name, app_id, prefix,
@@ -188,13 +188,13 @@ class MainWindow(Adw.ApplicationWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def _after_install(self, name, app_id, prefix, runtime, category):
-        """Setelah installer selesai, minta user pilih .exe hasil instalnya."""
-        dialog = Gtk.FileDialog(title="Pilih program hasil instal (.exe)")
+        """After the installer finishes, ask the user to pick the installed .exe."""
+        dialog = Gtk.FileDialog(title="Pick the installed program (.exe)")
         drive_c = Path(prefix) / "pfx" / "drive_c"
         if drive_c.exists():
             dialog.set_initial_folder(Gio.File.new_for_path(str(drive_c)))
         filt = Gtk.FileFilter()
-        filt.set_name("Executable Windows")
+        filt.set_name("Windows program")
         filt.add_pattern("*.exe")
         filters = Gio.ListStore.new(Gtk.FileFilter)
         filters.append(filt)
@@ -204,7 +204,7 @@ class MainWindow(Adw.ApplicationWindow):
             try:
                 f = dlg.open_finish(res)
             except Exception:
-                self._toast("Instalasi selesai, tapi program belum dipilih.")
+                self._toast("Installation finished, but no program was selected.")
                 return
             if not f:
                 return
@@ -216,7 +216,7 @@ class MainWindow(Adw.ApplicationWindow):
             else:
                 library.add_app(app)
             self.refresh_library()
-            self._toast(f"'{name}' ditambahkan ke library")
+            self._toast(f"'{name}' added to the library")
 
         dialog.open(self, None, done)
         return False
@@ -226,7 +226,7 @@ class MainWindow(Adw.ApplicationWindow):
         from .runtime_manager import RuntimeManager
         RuntimeManager().present(self)
 
-    # --- launch (auto-download runtime bila perlu) ---
+    # --- launch (auto-download runtime if needed) ---
     def _launch_app(self, app):
         from .. import launcher, runtimes as rt_mod
         from .log_window import LogWindow
@@ -298,13 +298,13 @@ class MainWindow(Adw.ApplicationWindow):
         from .. import desktop
         icon = app.icon or (str(LOGO_PATH) if LOGO_PATH.exists() else None)
         desktop.create_shortcut(app, self._launch_exec(app), icon_src=icon)
-        self._toast(f"Shortcut '{app.name}' dibuat")
+        self._toast(f"Shortcut '{app.name}' created")
 
     def _confirm_remove(self, app):
-        dialog = Adw.AlertDialog(heading="Hapus aplikasi?",
-                                 body=f"Hapus '{app.name}' dari library?")
-        dialog.add_response("cancel", "Batal")
-        dialog.add_response("remove", "Hapus")
+        dialog = Adw.AlertDialog(heading="Remove application?",
+                                 body=f"Remove '{app.name}' from the library?")
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("remove", "Remove")
         dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
 
         def on_response(_d, resp):

@@ -6,9 +6,9 @@ import shutil
 from pathlib import Path
 
 INSTALL_HINT = (
-    "umu-run tidak ditemukan. Pasang umu-launcher: unduh 'umu-run' dari "
-    "https://github.com/Open-Wine-Components/umu-launcher/releases lalu "
-    "letakkan di PATH, atau set env AGUSEMU_UMU_RUN ke path-nya."
+    "umu-run not found. Install umu-launcher: download 'umu-run' from "
+    "https://github.com/Open-Wine-Components/umu-launcher/releases and put "
+    "it on PATH, or set the AGUSEMU_UMU_RUN env var to its path."
 )
 
 

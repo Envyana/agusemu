@@ -1,4 +1,4 @@
-"""Dialog manajer runtime GE-Proton."""
+"""GE-Proton runtime manager dialog."""
 from __future__ import annotations
 
 import threading
@@ -15,24 +15,24 @@ from .. import config, runtimes  # noqa: E402
 class RuntimeManager(Adw.Dialog):
     def __init__(self):
         super().__init__()
-        self.set_title("Manajer Runtime")
+        self.set_title("Runtime Manager")
         self.set_content_width(560)
         self.set_content_height(560)
         self._installed_rows = []
 
         toolbar = Adw.ToolbarView()
         header = Adw.HeaderBar()
-        add_folder = Gtk.Button(label="Tambah folder…")
+        add_folder = Gtk.Button(label="Add folder…")
         add_folder.connect("clicked", self._on_add_folder)
         header.pack_start(add_folder)
         toolbar.add_top_bar(header)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12,
                       margin_top=12, margin_bottom=12, margin_start=12, margin_end=12)
-        self.installed_group = Adw.PreferencesGroup(title="Terpasang")
+        self.installed_group = Adw.PreferencesGroup(title="Installed")
         box.append(self.installed_group)
-        self.available_group = Adw.PreferencesGroup(title="Tersedia untuk diunduh")
-        load = Gtk.Button(label="Muat daftar rilis", valign=Gtk.Align.CENTER)
+        self.available_group = Adw.PreferencesGroup(title="Available to download")
+        load = Gtk.Button(label="Load release list", valign=Gtk.Align.CENTER)
         load.connect("clicked", self._on_load_releases)
         self.available_group.set_header_suffix(load)
         box.append(self.available_group)
@@ -54,7 +54,7 @@ class RuntimeManager(Adw.Dialog):
         return False
 
     def _on_add_folder(self, _btn):
-        dialog = Gtk.FileDialog(title="Pilih folder runtime")
+        dialog = Gtk.FileDialog(title="Choose a runtime folder")
 
         def done(dlg, res):
             try:
@@ -83,7 +83,7 @@ class RuntimeManager(Adw.Dialog):
         threading.Thread(target=worker, daemon=True).start()
 
     def _add_available_error(self, msg):
-        self.available_group.add(Adw.ActionRow(title="Gagal memuat", subtitle=msg))
+        self.available_group.add(Adw.ActionRow(title="Failed to load", subtitle=msg))
         return False
 
     def _populate_releases(self, rels):
@@ -91,9 +91,9 @@ class RuntimeManager(Adw.Dialog):
         for rel in rels:
             row = Adw.ActionRow(title=rel.tag)
             if rel.tag in installed:
-                row.set_subtitle("Sudah terpasang")
+                row.set_subtitle("Already installed")
             else:
-                btn = Gtk.Button(label="Unduh", valign=Gtk.Align.CENTER)
+                btn = Gtk.Button(label="Download", valign=Gtk.Align.CENTER)
                 btn.connect("clicked", self._on_download, rel, row)
                 row.add_suffix(btn)
             self.available_group.add(row)
@@ -110,9 +110,9 @@ class RuntimeManager(Adw.Dialog):
         def worker():
             try:
                 runtimes.download_runtime(rel, progress=on_progress)
-                GLib.idle_add(row.set_subtitle, "Selesai diunduh")
+                GLib.idle_add(row.set_subtitle, "Downloaded")
             except Exception as exc:
-                GLib.idle_add(row.set_subtitle, f"Gagal: {exc}")
+                GLib.idle_add(row.set_subtitle, f"Failed: {exc}")
             GLib.idle_add(self._refresh_installed)
 
         threading.Thread(target=worker, daemon=True).start()

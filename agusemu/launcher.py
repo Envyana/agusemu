@@ -1,4 +1,4 @@
-"""Menyusun environment & menjalankan umu-run."""
+"""Build environment & run umu-run."""
 from __future__ import annotations
 
 import os
@@ -23,7 +23,11 @@ def build_env(app: App, runtime: Runtime, base_env: dict | None = None) -> dict:
 
 
 def build_command(app: App, umu_run: str) -> list[str]:
-    return [umu_run, app.exe_path, *shlex.split(app.args or "")]
+    extra = shlex.split(app.args or "")
+    if app.exe_path.lower().endswith(".msi"):
+        # Windows installers (.msi) are run through msiexec.
+        return [umu_run, "msiexec", "/i", app.exe_path, *extra]
+    return [umu_run, app.exe_path, *extra]
 
 
 def launch(app: App, runtime: Runtime, on_output=None,
