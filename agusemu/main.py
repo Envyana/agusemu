@@ -11,11 +11,11 @@ def _run_headless(app_id: str) -> int:
     from .cli import _find_runtime
     app = library.get_app(app_id)
     if not app:
-        print(f"App tidak ditemukan: {app_id}", file=sys.stderr)
+        print(f"App not found: {app_id}", file=sys.stderr)
         return 1
     rt = _find_runtime(app.runtime)
     if not rt:
-        print(f"Runtime tidak ditemukan: {app.runtime}", file=sys.stderr)
+        print(f"Runtime not found: {app.runtime}", file=sys.stderr)
         return 1
     return launcher.launch(app, rt, on_output=print)
 

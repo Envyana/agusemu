@@ -54,11 +54,11 @@ def main(argv: list[str] | None = None) -> int:
     if ns.cmd == "run":
         app = library.get_app(ns.app_id)
         if not app:
-            print(f"App tidak ditemukan: {ns.app_id}")
+            print(f"App not found: {ns.app_id}")
             return 1
         rt = _find_runtime(app.runtime)
         if not rt:
-            print(f"Runtime tidak ditemukan: {app.runtime}")
+            print(f"Runtime not found: {app.runtime}")
             return 1
         return launcher.launch(app, rt, on_output=print)
 
