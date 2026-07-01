@@ -101,30 +101,34 @@ class MainWindow(Adw.ApplicationWindow):
         buttons.append(install)
         page.set_child(buttons)
         page.set_vexpand(True)
+        page.set_hexpand(True)
 
-        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        root.append(page)
+        overlay = Gtk.Overlay()
+        overlay.set_child(page)
         support = self._support_card()
         if support is not None:
-            root.append(support)
-        return root
+            support.set_halign(Gtk.Align.END)
+            support.set_valign(Gtk.Align.END)
+            support.set_margin_end(16)
+            support.set_margin_bottom(16)
+            overlay.add_overlay(support)
+        return overlay
 
     def _support_card(self):
         if not QR_PATH.exists():
             return None
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6,
-                       halign=Gtk.Align.CENTER, margin_bottom=22)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         card.add_css_class("card")
-        label = Gtk.Label(label="Support me", margin_top=12,
-                          margin_start=18, margin_end=18)
-        label.add_css_class("heading")
+        label = Gtk.Label(label="Support me", margin_top=6,
+                          margin_start=10, margin_end=10)
+        label.add_css_class("caption-heading")
         label.add_css_class("accent")
         qr = Gtk.Picture.new_for_filename(str(QR_PATH))
-        qr.set_size_request(104, 104)
+        qr.set_size_request(96, 96)
         qr.set_content_fit(Gtk.ContentFit.CONTAIN)
-        qr.set_margin_start(18)
-        qr.set_margin_end(18)
-        qr.set_margin_bottom(14)
+        qr.set_margin_start(10)
+        qr.set_margin_end(10)
+        qr.set_margin_bottom(10)
         card.append(label)
         card.append(qr)
         return card
