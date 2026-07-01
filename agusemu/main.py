@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 
-APP_ID = "com.patopo.AgusEmu"
+APP_ID = "io.github.Envyana.AgusEmu"
 
 
 def _run_headless(app_id: str) -> int:

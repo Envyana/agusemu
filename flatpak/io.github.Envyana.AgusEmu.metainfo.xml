@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.patopo.AgusEmu</id>
+  <id>io.github.Envyana.AgusEmu</id>
   <name>AgusEmu</name>
   <summary>Run Windows apps and games via GE-Proton</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
 
-  <developer id="com.patopo">
-    <name>Patopo</name>
+  <developer id="io.github.Envyana">
+    <name>Envyana</name>
   </developer>
 
   <description>
@@ -28,7 +28,7 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">com.patopo.AgusEmu.desktop</launchable>
+  <launchable type="desktop-id">io.github.Envyana.AgusEmu.desktop</launchable>
 
   <url type="homepage">https://github.com/Envyana/agusemu</url>
   <url type="bugtracker">https://github.com/Envyana/agusemu/issues</url>

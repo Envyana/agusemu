@@ -2,30 +2,23 @@
 
 This repo ships everything Flathub needs under `flatpak/`:
 
-- `com.patopo.AgusEmu.yaml` — Flatpak manifest
-- `com.patopo.AgusEmu.metainfo.xml` — AppStream metadata
-- `com.patopo.AgusEmu.desktop` — desktop entry
-- `com.patopo.AgusEmu.png` — icon
+- `io.github.Envyana.AgusEmu.yaml` — Flatpak manifest
+- `io.github.Envyana.AgusEmu.metainfo.xml` — AppStream metadata
+- `io.github.Envyana.AgusEmu.desktop` — desktop entry
+- `io.github.Envyana.AgusEmu.png` — icon
 - `agusemu-launcher.sh` — in-sandbox entry point
 
-## 0. Prerequisites
+## 0. App ID
 
-The app ID is **`com.patopo.AgusEmu`**. Flathub requires the ID to match a
-domain/host you control:
-
-- **You own `patopo.com`** → keep this ID and complete Flathub's website
-  verification for the domain (add the token file / DNS record Flathub gives you).
-- **You do NOT own it** → rename everywhere to **`io.github.Envyana.AgusEmu`**
-  (manifest app-id, metainfo `<id>`, desktop filename, icon filename, and the
-  `application_id` in `agusemu/main.py` + `agusemu/integrate.py`). `io.github.*`
-  needs no domain verification because the repo is on GitHub.
+The app ID is **`io.github.Envyana.AgusEmu`** — derived from the GitHub repo,
+so Flathub requires no domain verification.
 
 ## 1. Build & test locally first
 
 ```bash
 flatpak install -y flathub org.gnome.Platform//48 org.gnome.Sdk//48
-flatpak-builder --user --install --force-clean build-dir flatpak/com.patopo.AgusEmu.yaml
-flatpak run com.patopo.AgusEmu
+flatpak-builder --user --install --force-clean build-dir flatpak/io.github.Envyana.AgusEmu.yaml
+flatpak run io.github.Envyana.AgusEmu
 ```
 
 Fix anything that fails here before submitting. **The hard part is running
@@ -36,25 +29,25 @@ same problem).
 ## 2. Add screenshots
 
 Flathub requires at least one working screenshot. Add PNGs under
-`flatpak/screenshots/` and make sure the URL(s) in `com.patopo.AgusEmu.metainfo.xml`
+`flatpak/screenshots/` and make sure the URL(s) in `io.github.Envyana.AgusEmu.metainfo.xml`
 resolve (they point at `raw.githubusercontent.com/.../main/flatpak/screenshots/`).
 Validate metadata:
 
 ```bash
 flatpak run org.flatpak.Builder --version   # or: flatpak-builder-lint
-flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/com.patopo.AgusEmu.yaml
-flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream flatpak/com.patopo.AgusEmu.metainfo.xml
+flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest flatpak/io.github.Envyana.AgusEmu.yaml
+flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream flatpak/io.github.Envyana.AgusEmu.metainfo.xml
 ```
 
 ## 3. Submit to Flathub
 
 1. Fork **https://github.com/flathub/flathub**.
-2. Create a branch **named exactly `com.patopo.AgusEmu`**.
+2. Create a branch **named exactly `io.github.Envyana.AgusEmu`**.
 3. Put the manifest (and any local files it references) at the repo root of that
    branch.
 4. Open a Pull Request against `flathub/flathub`. A bot builds it; maintainers
    review. Respond to feedback and iterate.
-5. Once merged, Flathub creates a dedicated repo `flathub/com.patopo.AgusEmu`
+5. Once merged, Flathub creates a dedicated repo `flathub/io.github.Envyana.AgusEmu`
    and grants you commit access. Future updates = PRs there (bump the `commit:`
    in the manifest and the `<release>` in metainfo).
 

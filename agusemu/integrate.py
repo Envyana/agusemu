@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import config
 
-APP_ID = "com.patopo.AgusEmu"
+APP_ID = "io.github.Envyana.AgusEmu"
 
 
 def _data_home() -> Path:

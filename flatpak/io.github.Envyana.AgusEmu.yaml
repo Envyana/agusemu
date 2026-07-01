@@ -1,9 +1,9 @@
 # Flatpak manifest for AgusEmu.
 # Build/test locally:
 #   flatpak install -y flathub org.gnome.Platform//48 org.gnome.Sdk//48
-#   flatpak-builder --user --install --force-clean build-dir flatpak/com.patopo.AgusEmu.yaml
-#   flatpak run com.patopo.AgusEmu
-app-id: com.patopo.AgusEmu
+#   flatpak-builder --user --install --force-clean build-dir flatpak/io.github.Envyana.AgusEmu.yaml
+#   flatpak run io.github.Envyana.AgusEmu
+app-id: io.github.Envyana.AgusEmu
 runtime: org.gnome.Platform
 runtime-version: '48'
 sdk: org.gnome.Sdk
@@ -43,9 +43,9 @@ modules:
       - mkdir -p /app/lib/agusemu
       - cp -r agusemu /app/lib/agusemu/agusemu
       - install -Dm755 flatpak/agusemu-launcher.sh /app/bin/agusemu
-      - install -Dm644 flatpak/com.patopo.AgusEmu.desktop /app/share/applications/com.patopo.AgusEmu.desktop
-      - install -Dm644 flatpak/com.patopo.AgusEmu.metainfo.xml /app/share/metainfo/com.patopo.AgusEmu.metainfo.xml
-      - install -Dm644 flatpak/com.patopo.AgusEmu.png /app/share/icons/hicolor/256x256/apps/com.patopo.AgusEmu.png
+      - install -Dm644 flatpak/io.github.Envyana.AgusEmu.desktop /app/share/applications/io.github.Envyana.AgusEmu.desktop
+      - install -Dm644 flatpak/io.github.Envyana.AgusEmu.metainfo.xml /app/share/metainfo/io.github.Envyana.AgusEmu.metainfo.xml
+      - install -Dm644 flatpak/io.github.Envyana.AgusEmu.png /app/share/icons/hicolor/256x256/apps/io.github.Envyana.AgusEmu.png
     sources:
       - type: git
         url: https://github.com/Envyana/agusemu.git

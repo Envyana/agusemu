@@ -16,7 +16,7 @@ def test_installs_desktop_and_icon(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "share"))
     monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path / "data"))
     assert integrate.integrate_appimage(logo) is True
-    desktop = tmp_path / "share" / "applications" / "com.patopo.AgusEmu.desktop"
+    desktop = tmp_path / "share" / "applications" / "io.github.Envyana.AgusEmu.desktop"
     icon = tmp_path / "data" / "agusemu.png"
     assert desktop.exists() and icon.exists()
     text = desktop.read_text()

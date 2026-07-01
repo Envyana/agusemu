@@ -12,7 +12,7 @@ Adw.init()
 def test_main_window_constructs(tmp_path, monkeypatch):
     monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
     mod = importlib.import_module("agusemu.ui.main_window")
-    app = Adw.Application(application_id="com.patopo.AgusEmu.Test")
+    app = Adw.Application(application_id="io.github.Envyana.AgusEmu.Test")
     win = mod.MainWindow(application=app)
     assert win is not None
     win.refresh_library()
@@ -73,7 +73,7 @@ def test_logo_asset_and_empty_state(tmp_path, monkeypatch):
     assert LOGO_PATH.exists()
     tex = Gdk.Texture.new_from_filename(str(LOGO_PATH))
     assert tex.get_width() > 0
-    app = Adw.Application(application_id="com.patopo.AgusEmu.Logo")
+    app = Adw.Application(application_id="io.github.Envyana.AgusEmu.Logo")
     win = MainWindow(application=app)
     assert win is not None
 
@@ -96,7 +96,7 @@ def test_sidebar_groups_by_category(tmp_path, monkeypatch):
                         runtime="", prefix="/p/g1", category="game"))
     library.add_app(App(id="a1", name="App One", exe_path="/a.exe",
                         runtime="", prefix="/p/a1", category="app"))
-    app = Adw.Application(application_id="com.patopo.AgusEmu.Cat")
+    app = Adw.Application(application_id="io.github.Envyana.AgusEmu.Cat")
     win = MainWindow(application=app)
     win.refresh_library()
     # baris pertama harus kategori 'app' (diurutkan app dulu)
@@ -108,7 +108,7 @@ def test_home_button_shows_empty_state(tmp_path, monkeypatch):
     monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
     from agusemu.ui.main_window import MainWindow
     from gi.repository import Adw as _Adw, Gtk as _Gtk
-    app = _Adw.Application(application_id="com.patopo.AgusEmu.Home")
+    app = _Adw.Application(application_id="io.github.Envyana.AgusEmu.Home")
     win = MainWindow(application=app)
     win._go_home()
     child = win.content_box.get_first_child()
