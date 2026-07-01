@@ -15,6 +15,7 @@ from .. import config, library  # noqa: E402
 from ..models import App, make_app_id  # noqa: E402
 
 LOGO_PATH = Path(__file__).parent / "assets" / "agusemu.png"
+QR_PATH = Path(__file__).parent / "assets" / "support-qr.png"
 _CAT_LABEL = {"app": "Applications", "game": "Games"}
 
 
@@ -99,7 +100,34 @@ class MainWindow(Adw.ApplicationWindow):
         buttons.append(add)
         buttons.append(install)
         page.set_child(buttons)
-        return page
+        page.set_vexpand(True)
+
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        root.append(page)
+        support = self._support_card()
+        if support is not None:
+            root.append(support)
+        return root
+
+    def _support_card(self):
+        if not QR_PATH.exists():
+            return None
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6,
+                       halign=Gtk.Align.CENTER, margin_bottom=22)
+        card.add_css_class("card")
+        label = Gtk.Label(label="Support me", margin_top=12,
+                          margin_start=18, margin_end=18)
+        label.add_css_class("heading")
+        label.add_css_class("accent")
+        qr = Gtk.Picture.new_for_filename(str(QR_PATH))
+        qr.set_size_request(104, 104)
+        qr.set_content_fit(Gtk.ContentFit.CONTAIN)
+        qr.set_margin_start(18)
+        qr.set_margin_end(18)
+        qr.set_margin_bottom(14)
+        card.append(label)
+        card.append(qr)
+        return card
 
     def _set_content_child(self, widget):
         child = self.content_box.get_first_child()

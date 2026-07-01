@@ -112,4 +112,4 @@ def test_home_button_shows_empty_state(tmp_path, monkeypatch):
     win = MainWindow(application=app)
     win._go_home()
     child = win.content_box.get_first_child()
-    assert isinstance(child, _Adw.StatusPage)
+    assert isinstance(child, _Gtk.Box)
