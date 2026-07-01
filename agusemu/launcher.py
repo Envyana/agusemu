@@ -22,11 +22,17 @@ def build_env(app: App, runtime: Runtime, base_env: dict | None = None) -> dict:
     return env
 
 
+def to_wine_path(path: str) -> str:
+    """Convert a Linux path to a Wine path (the Z: drive maps to /)."""
+    return "Z:" + os.path.abspath(path).replace("/", "\\")
+
+
 def build_command(app: App, umu_run: str) -> list[str]:
     extra = shlex.split(app.args or "")
     if app.exe_path.lower().endswith(".msi"):
-        # Windows installers (.msi) are run through msiexec.
-        return [umu_run, "msiexec", "/i", app.exe_path, *extra]
+        # Windows installers (.msi) run through msiexec; the .msi argument must
+        # be a Wine path (Z:\...), not a Linux path, or msiexec cannot open it.
+        return [umu_run, "msiexec", "/i", to_wine_path(app.exe_path), *extra]
     return [umu_run, app.exe_path, *extra]
 
 

@@ -45,4 +45,4 @@ def test_build_command_with_args():
 
 def test_build_command_msi_uses_msiexec():
     cmd = launcher.build_command(_app(exe_path="/inst/setup.msi"), "/usr/bin/umu-run")
-    assert cmd == ["/usr/bin/umu-run", "msiexec", "/i", "/inst/setup.msi"]
+    assert cmd == ["/usr/bin/umu-run", "msiexec", "/i", "Z:\\inst\\setup.msi"]
