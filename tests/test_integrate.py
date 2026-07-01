@@ -19,3 +19,14 @@ def test_installs_desktop_and_icon(tmp_path, monkeypatch):
     icon = tmp_path / "share" / "icons" / "hicolor" / "256x256" / "apps" / "com.patopo.AgusEmu.png"
     assert desktop.exists() and icon.exists()
     assert f'Exec="{appimage}"' in desktop.read_text()
+
+
+def test_never_raises_when_do_integrate_fails(tmp_path, monkeypatch):
+    monkeypatch.setenv("APPIMAGE", str(tmp_path / "x.AppImage"))
+
+    def boom(*a, **k):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(integrate, "_do_integrate", boom)
+    # tidak boleh melempar exception
+    assert integrate.integrate_appimage("/x.png") is False
