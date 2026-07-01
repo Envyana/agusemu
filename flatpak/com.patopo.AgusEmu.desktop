@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AgusEmu
+Comment=Run Windows apps and games via GE-Proton
+Exec=agusemu
+Icon=com.patopo.AgusEmu
+Terminal=false
+Categories=Game;Utility;
+Keywords=wine;proton;windows;exe;msi;launcher;

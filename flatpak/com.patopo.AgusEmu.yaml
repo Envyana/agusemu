@@ -1,0 +1,52 @@
+# Flatpak manifest for AgusEmu.
+# Build/test locally:
+#   flatpak install -y flathub org.gnome.Platform//48 org.gnome.Sdk//48
+#   flatpak-builder --user --install --force-clean build-dir flatpak/com.patopo.AgusEmu.yaml
+#   flatpak run com.patopo.AgusEmu
+app-id: com.patopo.AgusEmu
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: agusemu
+
+finish-args:
+  # Display / GPU / audio / input
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --share=ipc
+  - --device=all
+  # GE-Proton and the Steam Linux Runtime need broad access + network
+  - --share=network
+  - --filesystem=host
+  # Allow the nested Proton (pressure-vessel) container to run.
+  # NOTE: running Proton inside Flatpak is the tricky part and may need
+  # adjustment together with the Flathub reviewers.
+  - --allow=devel
+  - --talk-name=org.freedesktop.Flatpak
+  - --env=STEAM_COMPAT_MOUNTS=
+
+modules:
+  - name: umu-launcher
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 umu-run /app/bin/umu-run
+    sources:
+      - type: archive
+        url: https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.4.0/umu-launcher-1.4.0-zipapp.tar
+        sha256: 138ce4b8843608a257d4bee88191ca78a989778bcefd8abb3c1d1aaac3ac6fb8
+        strip-components: 1
+
+  - name: agusemu
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/agusemu
+      - cp -r agusemu /app/lib/agusemu/agusemu
+      - install -Dm755 flatpak/agusemu-launcher.sh /app/bin/agusemu
+      - install -Dm644 flatpak/com.patopo.AgusEmu.desktop /app/share/applications/com.patopo.AgusEmu.desktop
+      - install -Dm644 flatpak/com.patopo.AgusEmu.metainfo.xml /app/share/metainfo/com.patopo.AgusEmu.metainfo.xml
+      - install -Dm644 flatpak/com.patopo.AgusEmu.png /app/share/icons/hicolor/256x256/apps/com.patopo.AgusEmu.png
+    sources:
+      - type: git
+        url: https://github.com/Envyana/agusemu.git
+        commit: b3a7c0e8ebb6111bebf6e0acd67721a0f10cc53c

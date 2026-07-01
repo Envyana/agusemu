@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.patopo.AgusEmu</id>
+  <name>AgusEmu</name>
+  <summary>Run Windows apps and games via GE-Proton</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <developer id="com.patopo">
+    <name>Patopo</name>
+  </developer>
+
+  <description>
+    <p>
+      AgusEmu is a focused GTK4 / libadwaita launcher that lets you install and
+      run Windows programs and games on Linux using GE-Proton, powered by
+      umu-launcher — no terminal required.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Games and everyday apps, organized into categories</li>
+      <li>Run Windows installers (.exe/.msi), then add the installed program</li>
+      <li>Isolated Wine prefix per application</li>
+      <li>Automatic GE-Proton download on first launch, or bring your own</li>
+      <li>Winetricks and winecfg per prefix</li>
+      <li>DXVK/VKD3D toggle and custom environment variables</li>
+      <li>Create app-menu shortcuts using each program's own icon</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.patopo.AgusEmu.desktop</launchable>
+
+  <url type="homepage">https://github.com/Envyana/agusemu</url>
+  <url type="bugtracker">https://github.com/Envyana/agusemu/issues</url>
+  <url type="vcs-browser">https://github.com/Envyana/agusemu</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The AgusEmu home screen</caption>
+      <image>https://raw.githubusercontent.com/Envyana/agusemu/main/flatpak/screenshots/home.png</image>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-07-01">
+      <description>
+        <p>First public release.</p>
+      </description>
+    </release>
+  </releases>
+</component>
