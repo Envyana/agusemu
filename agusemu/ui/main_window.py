@@ -190,9 +190,14 @@ class MainWindow(Adw.ApplicationWindow):
     def _after_install(self, name, app_id, prefix, runtime, category):
         """After the installer finishes, ask the user to pick the installed .exe."""
         dialog = Gtk.FileDialog(title="Pick the installed program (.exe)")
-        drive_c = Path(prefix) / "pfx" / "drive_c"
-        if drive_c.exists():
-            dialog.set_initial_folder(Gio.File.new_for_path(str(drive_c)))
+        base = Path(prefix) / "pfx" / "drive_c"
+        for candidate in ("Program Files", "Program Files (x86)"):
+            pf = base / candidate
+            if pf.exists():
+                base = pf
+                break
+        if base.exists():
+            dialog.set_initial_folder(Gio.File.new_for_path(str(base)))
         filt = Gtk.FileFilter()
         filt.set_name("Windows program")
         filt.add_pattern("*.exe")
