@@ -33,6 +33,18 @@ def prefixes_dir() -> Path:
     return d
 
 
+def logs_dir() -> Path:
+    d = data_dir() / "logs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def icons_dir() -> Path:
+    d = data_dir() / "icons"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def library_path() -> Path:
     return data_dir() / "library.json"
 

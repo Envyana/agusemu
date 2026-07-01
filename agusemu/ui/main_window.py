@@ -245,23 +245,34 @@ class MainWindow(Adw.ApplicationWindow):
 
     # --- launch (auto-download runtime if needed) ---
     def _launch_app(self, app):
-        from .. import launcher, runtimes as rt_mod
-        from .log_window import LogWindow
-        log = LogWindow(title=f"Log: {app.name}")
-        log.present()
+        # Launch silently: no log window. Output goes to a per-app log file so a
+        # verbose Proton process can never flood the GTK main loop (which caused
+        # hangs, e.g. on drag-and-drop). Feedback is given via toasts.
+        from .. import config, launcher, runtimes as rt_mod
+        self._toast(f"Launching {app.name}\u2026")
 
         def worker():
+            logf = open(config.logs_dir() / f"{app.id}.log", "w")
+
+            def out(line):
+                logf.write(line + "\n")
+
             try:
-                rt = rt_mod.ensure_runtime(app.runtime, on_status=log.append_line)
+                rt = rt_mod.ensure_runtime(
+                    app.runtime, on_status=lambda m: GLib.idle_add(self._toast, m))
                 if app.runtime != rt.name:
                     library.update_app(app.with_changes(runtime=rt.name))
                     GLib.idle_add(self.refresh_library)
                 code = launcher.launch(app.with_changes(runtime=rt.name), rt,
-                                       on_output=log.append_line)
+                                       on_output=out)
             except Exception as exc:
-                log.append_line(f"[error] {exc}")
-                code = -1
-            log.mark_finished(code)
+                out(f"[error] {exc}")
+                GLib.idle_add(self._toast, f"Failed to launch {app.name} \u2014 see log")
+                return
+            finally:
+                logf.close()
+            if code not in (0, None):
+                GLib.idle_add(self._toast, f"{app.name} exited (code {code})")
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -312,9 +323,13 @@ class MainWindow(Adw.ApplicationWindow):
         return f'"{appimage}" --run {app.id}' if appimage else f"agusemu --run {app.id}"
 
     def _make_shortcut(self, app):
-        from .. import desktop
-        icon = app.icon or (str(LOGO_PATH) if LOGO_PATH.exists() else None)
-        desktop.create_shortcut(app, self._launch_exec(app), icon_src=icon)
+        from .. import config, desktop, icons
+        # Prefer the program's own icon extracted from the .exe; fall back to AE.
+        icon = icons.extract_exe_icon(app.exe_path,
+                                      config.icons_dir() / f"{app.id}-exe.png")
+        icon_src = str(icon) if icon else (
+            app.icon or (str(LOGO_PATH) if LOGO_PATH.exists() else None))
+        desktop.create_shortcut(app, self._launch_exec(app), icon_src=icon_src)
         self._toast(f"Shortcut '{app.name}' created")
 
     def _confirm_remove(self, app):
