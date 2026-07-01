@@ -19,5 +19,8 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["agusemu*"]
 
+[tool.setuptools.package-data]
+"agusemu.ui" = ["assets/*.png"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

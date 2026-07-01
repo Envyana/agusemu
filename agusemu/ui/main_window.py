@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gtk  # noqa: E402
 
 from .. import library  # noqa: E402
+
+LOGO_PATH = Path(__file__).parent / "assets" / "agusemu.png"
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -63,10 +66,14 @@ class MainWindow(Adw.ApplicationWindow):
         return box
 
     def _empty_state(self):
-        return Adw.StatusPage(
-            title="Pilih aplikasi",
-            description="Tambahkan aplikasi .exe untuk mulai.",
-            icon_name="application-x-executable-symbolic")
+        page = Adw.StatusPage(
+            title="AgusEmu",
+            description="Tambahkan aplikasi .exe untuk mulai.")
+        try:
+            page.set_paintable(Gdk.Texture.new_from_filename(str(LOGO_PATH)))
+        except Exception:
+            page.set_icon_name("application-x-executable-symbolic")
+        return page
 
     def _set_content_child(self, widget):
         child = self.content_box.get_first_child()

@@ -64,3 +64,15 @@ def test_winetricks_dialog_constructs(tmp_path, monkeypatch):
     dlg = WinetricksDialog(app=app, runtime=Runtime("r", "/rt/r", "managed"),
                            on_run=lambda verbs: None)
     assert dlg is not None
+
+
+def test_logo_asset_and_empty_state(tmp_path, monkeypatch):
+    monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
+    from gi.repository import Gdk
+    from agusemu.ui.main_window import LOGO_PATH, MainWindow
+    assert LOGO_PATH.exists()
+    tex = Gdk.Texture.new_from_filename(str(LOGO_PATH))
+    assert tex.get_width() > 0
+    app = Adw.Application(application_id="com.patopo.AgusEmu.Logo")
+    win = MainWindow(application=app)
+    assert win is not None
