@@ -49,4 +49,4 @@ modules:
     sources:
       - type: git
         url: https://github.com/Envyana/agusemu.git
-        commit: 92e2290f10a3b566c8a7172390701d7367db1d02
+        commit: bc0cdc27b484167488f8ae1eceec5fc3434515d2
