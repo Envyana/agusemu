@@ -40,7 +40,6 @@ class MainWindow(Adw.ApplicationWindow):
         install_btn = Gtk.Button(icon_name="system-software-install-symbolic")
         install_btn.set_tooltip_text("Install from an installer (.exe/.msi)")
         install_btn.connect("clicked", lambda *_: self._open_install_dialog())
-
         sidebar_page = Adw.NavigationPage(
             title="Library",
             child=self._chrome("Library", sidebar_scroll,
@@ -101,7 +100,6 @@ class MainWindow(Adw.ApplicationWindow):
         buttons.append(install)
         page.set_child(buttons)
         page.set_vexpand(True)
-        page.set_hexpand(True)
 
         overlay = Gtk.Overlay()
         overlay.set_child(page)
@@ -172,6 +170,29 @@ class MainWindow(Adw.ApplicationWindow):
             row._category = app.category
             self.listbox.append(row)
 
+    # --- generic logged runner (tailing window; flood-proof) ---
+    def _run_logged(self, title, log_id, target):
+        from .log_window import LogWindow
+        logpath = config.logs_dir() / f"{log_id}.log"
+        open(logpath, "w").close()
+        win = LogWindow(title=title)
+        win.tail_file(str(logpath))
+        win.present()
+
+        def worker():
+            with open(logpath, "a") as f:
+                def out(line):
+                    f.write(line + "\n")
+                    f.flush()
+                try:
+                    code = target(out)
+                except Exception as exc:
+                    out(f"[error] {exc}")
+                    code = -1
+                out(f"\n[finished] exit code = {code}")
+
+        threading.Thread(target=worker, daemon=True).start()
+
     # --- detail wiring ---
     def _make_detail(self):
         from .detail_view import DetailView
@@ -217,30 +238,21 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _run_installer(self, name, installer, category, runtime_name):
         from .. import launcher, runtimes as rt_mod
-        from .log_window import LogWindow
         app_id = make_app_id(name)
         prefix = str(config.prefixes_dir() / app_id)
-        log = LogWindow(title=f"Install: {name}")
-        log.present()
 
-        def worker():
-            try:
-                rt = rt_mod.ensure_runtime(runtime_name, on_status=log.append_line)
-                tmp = App(id=app_id, name=name, exe_path=installer,
-                          runtime=rt.name, prefix=prefix, category=category)
-                log.append_line("Running installer…")
-                code = launcher.launch(tmp, rt, on_output=log.append_line)
-                log.mark_finished(code)
-                GLib.idle_add(self._after_install, name, app_id, prefix,
-                              rt.name, category)
-            except Exception as exc:
-                log.append_line(f"[error] {exc}")
-                log.mark_finished(-1)
+        def target(out):
+            rt = rt_mod.ensure_runtime(runtime_name, on_status=out)
+            tmp = App(id=app_id, name=name, exe_path=installer,
+                      runtime=rt.name, prefix=prefix, category=category)
+            out("Running installer…")
+            code = launcher.launch(tmp, rt, on_output=out)
+            GLib.idle_add(self._after_install, name, app_id, prefix, rt.name, category)
+            return code
 
-        threading.Thread(target=worker, daemon=True).start()
+        self._run_logged(f"Install: {name}", app_id, target)
 
     def _after_install(self, name, app_id, prefix, runtime, category):
-        """After the installer finishes, ask the user to pick the installed .exe."""
         dialog = Gtk.FileDialog(title="Pick the installed program (.exe)")
         base = Path(prefix) / "pfx" / "drive_c"
         for candidate in ("Program Files", "Program Files (x86)"):
@@ -283,78 +295,42 @@ class MainWindow(Adw.ApplicationWindow):
         from .runtime_manager import RuntimeManager
         RuntimeManager().present(self)
 
-    # --- launch (auto-download runtime if needed) ---
+    # --- launch (shows a tailing log window: download progress + run output) ---
     def _launch_app(self, app):
-        # Launch silently: no log window. Output goes to a per-app log file so a
-        # verbose Proton process can never flood the GTK main loop (which caused
-        # hangs, e.g. on drag-and-drop). Feedback is given via toasts.
-        from .. import config, launcher, runtimes as rt_mod
-        self._toast(f"Launching {app.name}\u2026")
+        from .. import launcher, runtimes as rt_mod
 
-        def worker():
-            logf = open(config.logs_dir() / f"{app.id}.log", "w")
+        def target(out):
+            rt = rt_mod.ensure_runtime(app.runtime, on_status=out)
+            if app.runtime != rt.name:
+                library.update_app(app.with_changes(runtime=rt.name))
+                GLib.idle_add(self.refresh_library)
+            return launcher.launch(app.with_changes(runtime=rt.name), rt, on_output=out)
 
-            def out(line):
-                logf.write(line + "\n")
-
-            try:
-                rt = rt_mod.ensure_runtime(
-                    app.runtime, on_status=lambda m: GLib.idle_add(self._toast, m))
-                if app.runtime != rt.name:
-                    library.update_app(app.with_changes(runtime=rt.name))
-                    GLib.idle_add(self.refresh_library)
-                code = launcher.launch(app.with_changes(runtime=rt.name), rt,
-                                       on_output=out)
-            except Exception as exc:
-                out(f"[error] {exc}")
-                GLib.idle_add(self._toast, f"Failed to launch {app.name} \u2014 see log")
-                return
-            finally:
-                logf.close()
-            if code not in (0, None):
-                GLib.idle_add(self._toast, f"{app.name} exited (code {code})")
-
-        threading.Thread(target=worker, daemon=True).start()
+        self._run_logged(f"Log: {app.name}", app.id, target)
 
     # --- winetricks / winecfg ---
     def _open_winetricks(self, app):
         from .. import runtimes as rt_mod, winetools
-        from .log_window import LogWindow
         from .winetricks_dialog import WinetricksDialog
 
         def on_run(verbs):
-            log = LogWindow(title=f"Winetricks: {app.name}")
-            log.present()
-
-            def worker():
-                try:
-                    rt = rt_mod.ensure_runtime(app.runtime, on_status=log.append_line)
-                    code = winetools.run_winetricks(app.with_changes(runtime=rt.name),
-                                                    rt, verbs, on_output=log.append_line)
-                except Exception as exc:
-                    log.append_line(f"[error] {exc}")
-                    code = -1
-                log.mark_finished(code)
-            threading.Thread(target=worker, daemon=True).start()
+            def target(out):
+                rt = rt_mod.ensure_runtime(app.runtime, on_status=out)
+                return winetools.run_winetricks(app.with_changes(runtime=rt.name),
+                                                rt, verbs, on_output=out)
+            self._run_logged(f"Winetricks: {app.name}", app.id + "-winetricks", target)
 
         WinetricksDialog(app=app, runtime=None, on_run=on_run).present(self)
 
     def _run_winecfg(self, app):
         from .. import runtimes as rt_mod, winetools
-        from .log_window import LogWindow
-        log = LogWindow(title=f"winecfg: {app.name}")
-        log.present()
 
-        def worker():
-            try:
-                rt = rt_mod.ensure_runtime(app.runtime, on_status=log.append_line)
-                code = winetools.run_winecfg(app.with_changes(runtime=rt.name), rt,
-                                             on_output=log.append_line)
-            except Exception as exc:
-                log.append_line(f"[error] {exc}")
-                code = -1
-            log.mark_finished(code)
-        threading.Thread(target=worker, daemon=True).start()
+        def target(out):
+            rt = rt_mod.ensure_runtime(app.runtime, on_status=out)
+            return winetools.run_winecfg(app.with_changes(runtime=rt.name), rt,
+                                         on_output=out)
+
+        self._run_logged(f"winecfg: {app.name}", app.id + "-winecfg", target)
 
     # --- shortcut / remove ---
     def _launch_exec(self, app) -> str:
@@ -363,8 +339,7 @@ class MainWindow(Adw.ApplicationWindow):
         return f'"{appimage}" --run {app.id}' if appimage else f"agusemu --run {app.id}"
 
     def _make_shortcut(self, app):
-        from .. import config, desktop, icons
-        # Prefer the program's own icon extracted from the .exe; fall back to AE.
+        from .. import desktop, icons
         icon = icons.extract_exe_icon(app.exe_path,
                                       config.icons_dir() / f"{app.id}-exe.png")
         icon_src = str(icon) if icon else (

@@ -45,8 +45,10 @@ def test_log_window_append(tmp_path, monkeypatch):
     monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
     from agusemu.ui.log_window import LogWindow
     lw = LogWindow(title="Log: Test")
-    lw.append_line("baris 1")
-    lw.mark_finished(0)
+    lw.append_line("line 1")
+    logf = tmp_path / "t.log"
+    logf.write_text("hello\n")
+    lw.tail_file(str(logf))
     assert lw is not None
 
 
