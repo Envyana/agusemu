@@ -78,11 +78,23 @@ class MainWindow(Adw.ApplicationWindow):
     def _empty_state(self):
         page = Adw.StatusPage(
             title="AgusEmu",
-            description="Add an app/game .exe, or install from an installer.")
+            description="Add an app/game, or install from an installer (.exe/.msi).")
         try:
             page.set_paintable(Gdk.Texture.new_from_filename(str(LOGO_PATH)))
         except Exception:
             page.set_icon_name("application-x-executable-symbolic")
+        buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12,
+                          halign=Gtk.Align.CENTER)
+        add = Gtk.Button(label="Add app / game")
+        add.add_css_class("pill")
+        add.connect("clicked", lambda *_: self._open_add_dialog())
+        install = Gtk.Button(label="Install from installer")
+        install.add_css_class("pill")
+        install.add_css_class("suggested-action")
+        install.connect("clicked", lambda *_: self._open_install_dialog())
+        buttons.append(add)
+        buttons.append(install)
+        page.set_child(buttons)
         return page
 
     def _set_content_child(self, widget):
