@@ -1,0 +1,9 @@
+.superpowers/
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.AppImage
+AppDir/
+.pytest_cache/
