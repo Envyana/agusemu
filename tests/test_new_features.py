@@ -31,6 +31,19 @@ def test_build_env_nvapi_disabled_by_default():
     assert "DXVK_ENABLE_NVAPI" not in env
 
 
+# --- WebView2 blank-white workaround ---
+
+def test_build_env_sets_webview2_gpu_workaround():
+    env = launcher.build_env(_app(), _rt(), base_env={})
+    assert "--disable-gpu" in env["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"]
+
+
+def test_build_env_webview2_args_overridable_by_app_env():
+    app = _app(env={"WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": "--custom"})
+    env = launcher.build_env(app, _rt(), base_env={})
+    assert env["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] == "--custom"
+
+
 def test_app_from_dict_old_payload_defaults_nvapi_false():
     # library.json lama tidak punya field nvapi_enabled.
     d = _app().to_dict()

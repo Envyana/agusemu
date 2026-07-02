@@ -23,6 +23,11 @@ def build_env(app: App, runtime: Runtime, base_env: dict | None = None) -> dict:
         # GPU NVIDIA (NVAPI/CUDA/PhysX) butuh dxvk-nvapi diaktifkan.
         env["PROTON_ENABLE_NVAPI"] = "1"
         env["DXVK_ENABLE_NVAPI"] = "1"
+    # WebView2 (Chromium) kerap render jendela putih kosong di Wine saat GPU
+    # accel/sandbox aktif — mis. panel web Clip Studio Paint. Argumen resmi
+    # WebView2 ini mematikannya; hanya berpengaruh ke proses WebView2.
+    env.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+                   "--disable-gpu --no-sandbox")
     env.update(app.env or {})
     return env
 
