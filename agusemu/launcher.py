@@ -72,6 +72,25 @@ def stream_and_wait(proc, on_output=None) -> int:
     return proc.wait()
 
 
+def shutdown_prefix(prefix: str, runtime: Runtime) -> None:
+    """Matikan semua proses Wine di sebuah prefix (wineserver -k).
+
+    Best-effort: dipakai untuk mengakhiri installer yang meninggalkan proses
+    daemon (mis. Edge updater) sehingga command tidak menggantung selamanya.
+    """
+    ws = Path(runtime.path) / "files" / "bin" / "wineserver"
+    if not ws.exists():
+        return
+    # Prefix "sebenarnya" bisa app.prefix atau app.prefix/pfx (via umu/Proton).
+    for wp in (prefix, str(Path(prefix) / "pfx")):
+        try:
+            subprocess.run([str(ws), "-k"], env={**os.environ, "WINEPREFIX": wp},
+                           timeout=30, stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+
 def launch(app: App, runtime: Runtime, on_output=None,
            runner=subprocess.Popen) -> int:
     Path(app.prefix).mkdir(parents=True, exist_ok=True)

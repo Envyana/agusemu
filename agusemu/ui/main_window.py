@@ -359,18 +359,14 @@ class MainWindow(Adw.ApplicationWindow):
                          installed=winetools.installed_verbs(app)).present(self)
 
     def _install_webview2(self, app):
-        from .. import launcher, runtimes as rt_mod, webview2
+        from .. import runtimes as rt_mod, webview2
 
         def target(out):
             rt = rt_mod.ensure_runtime(app.runtime, on_status=out)
-            installer = webview2.installer_path(on_status=out)
-            out("Menjalankan installer WebView2 (silent)…")
-            tmp = App(id=app.id, name=app.name, exe_path=str(installer),
-                      runtime=rt.name, prefix=app.prefix,
-                      args=" ".join(webview2.INSTALL_ARGS))
-            code = launcher.launch(tmp, rt, on_output=out)
-            if code in (0, 3010):
-                out("[WebView2 terpasang — coba jalankan aplikasi lagi]")
+            code = webview2.install(app.with_changes(runtime=rt.name), rt,
+                                    on_output=out)
+            if code == 0:
+                out("[WebView2 siap — coba jalankan aplikasi lagi]")
             return code
 
         self._run_logged(f"WebView2: {app.name}", app.id + "-webview2", target)

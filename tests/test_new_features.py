@@ -123,3 +123,30 @@ def test_webview2_env_override_skips_download(tmp_path, monkeypatch):
         raise AssertionError("override harus dipakai tanpa mengunduh")
 
     assert webview2.installer_path(opener=fail_opener) == custom
+
+
+def test_webview2_is_installed_detects_runtime(tmp_path):
+    assert webview2.is_installed(str(tmp_path)) is False
+    exe = (tmp_path / "drive_c" / "Program Files (x86)" / "Microsoft"
+           / "EdgeWebView" / "Application" / "115.0.1901.200"
+           / "msedgewebview2.exe")
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"MZ")
+    assert webview2.is_installed(str(tmp_path)) is True
+
+
+def test_webview2_install_shortcircuits_when_present(tmp_path, monkeypatch):
+    exe = (tmp_path / "drive_c" / "Program Files (x86)" / "Microsoft"
+           / "EdgeWebView" / "Application" / "120.0.0.0"
+           / "msedgewebview2.exe")
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"MZ")
+
+    def fail_popen(*a, **k):
+        raise AssertionError("tidak boleh menjalankan installer bila sudah ada")
+
+    app = _app(prefix=str(tmp_path))
+    msgs = []
+    code = webview2.install(app, _rt(), on_output=msgs.append, popen=fail_popen)
+    assert code == 0
+    assert any("sudah terpasang" in m for m in msgs)
