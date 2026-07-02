@@ -220,7 +220,8 @@ class MainWindow(Adw.ApplicationWindow):
             on_winetricks=self._open_winetricks,
             on_winecfg=self._run_winecfg,
             on_shortcut=self._make_shortcut,
-            on_remove=self._confirm_remove)
+            on_remove=self._confirm_remove,
+            on_open_prefix=self._open_prefix)
 
     def _on_row_selected(self, _listbox, row):
         if row is None:
@@ -365,6 +366,15 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._run_logged(f"winecfg: {app.name}", app.id + "-winecfg", target)
 
+    # --- open prefix ---
+    def _open_prefix(self, app):
+        base = Path(app.prefix) / "pfx" / "drive_c"
+        target = base if base.exists() else Path(app.prefix)
+        if not target.exists():
+            self._toast("Prefix does not exist yet — launch the app once first")
+            return
+        Gio.AppInfo.launch_default_for_uri(target.as_uri(), None)
+
     # --- shortcut / remove ---
     def _launch_exec(self, app) -> str:
         import os
@@ -405,6 +415,44 @@ class MainWindow(Adw.ApplicationWindow):
                     del self.detail
                 self.refresh_library()
                 self._set_content_child(self._empty_state())
+                self._ask_delete_prefix(app)
+        dialog.connect("response", on_response)
+        dialog.present(self)
+
+    def _ask_delete_prefix(self, app):
+        dialog = Adw.AlertDialog(
+            heading="Delete prefix?",
+            body=(f"Do you also want to delete the prefix folder for "
+                  f"'{app.name}' (its C: drive and everything installed "
+                  f"in it)?\n{app.prefix}"))
+        dialog.add_response("no", "No")
+        dialog.add_response("yes", "Yes, delete")
+        dialog.set_response_appearance("yes", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("no")
+
+        def on_response(_d, resp):
+            if resp != "yes":
+                return
+            prefix = Path(app.prefix)
+            root = config.prefixes_dir().resolve()
+            try:
+                inside = prefix.resolve().is_relative_to(root)
+            except OSError:
+                inside = False
+            if not prefix.exists():
+                return
+            if not inside:
+                # Jangan pernah rmtree folder di luar data dir AgusEmu.
+                self._toast("Prefix is outside AgusEmu's data dir — not deleted")
+                return
+
+            def worker():
+                import shutil
+                shutil.rmtree(prefix, ignore_errors=True)
+                GLib.idle_add(self._toast, f"Prefix for '{app.name}' deleted")
+
+            threading.Thread(target=worker, daemon=True).start()
+
         dialog.connect("response", on_response)
         dialog.present(self)
 

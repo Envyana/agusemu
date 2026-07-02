@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import urllib.request
 from pathlib import Path
 
 INSTALL_HINT = (
@@ -10,6 +11,9 @@ INSTALL_HINT = (
     "https://github.com/Open-Wine-Components/umu-launcher/releases and put "
     "it on PATH, or set the AGUSEMU_UMU_RUN env var to its path."
 )
+
+WINETRICKS_URL = ("https://raw.githubusercontent.com/Winetricks/winetricks/"
+                  "master/src/winetricks")
 
 
 def _is_exec(path: Path) -> bool:
@@ -38,8 +42,39 @@ def require_umu_run() -> str:
     return path
 
 
+def _managed_winetricks() -> Path:
+    from . import config
+    return config.data_dir() / "tools" / "winetricks"
+
+
 def find_winetricks() -> str | None:
     env = os.environ.get("AGUSEMU_WINETRICKS")
     if env and _is_exec(Path(env)):
         return env
-    return shutil.which("winetricks")
+    found = shutil.which("winetricks")
+    if found:
+        return found
+    managed = _managed_winetricks()
+    return str(managed) if _is_exec(managed) else None
+
+
+def ensure_winetricks(on_status=None,
+                      opener=urllib.request.urlopen) -> str:
+    """Kembalikan path winetricks; unduh salinan terkelola bila tidak ada.
+
+    winetricks hanyalah satu shell script, jadi pengguna AppImage/sistem
+    tanpa paket winetricks tetap bisa memakai fitur komponen.
+    """
+    found = find_winetricks()
+    if found:
+        return found
+    dest = _managed_winetricks()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if on_status:
+        on_status("Mengunduh winetricks…")
+    tmp = dest.with_name(dest.name + ".tmp")
+    with opener(WINETRICKS_URL, timeout=60) as resp:
+        tmp.write_bytes(resp.read())
+    tmp.chmod(0o755)
+    os.replace(tmp, dest)
+    return str(dest)

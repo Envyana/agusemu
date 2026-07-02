@@ -18,6 +18,11 @@ def build_env(app: App, runtime: Runtime, base_env: dict | None = None) -> dict:
     env["STEAM_COMPAT_DATA_PATH"] = app.prefix
     if not app.dxvk_enabled:
         env["PROTON_USE_WINED3D"] = "1"
+    if app.nvapi_enabled:
+        # Proton menyembunyikan NVAPI secara default; aplikasi yang membaca
+        # GPU NVIDIA (NVAPI/CUDA/PhysX) butuh dxvk-nvapi diaktifkan.
+        env["PROTON_ENABLE_NVAPI"] = "1"
+        env["DXVK_ENABLE_NVAPI"] = "1"
     env.update(app.env or {})
     return env
 

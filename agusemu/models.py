@@ -26,6 +26,7 @@ class App:
     args: str = ""
     env: dict[str, str] = field(default_factory=dict)
     dxvk_enabled: bool = True
+    nvapi_enabled: bool = False  # ekspos NVAPI/CUDA NVIDIA ke aplikasi
     category: str = "app"  # "app" | "game"
     created_at: str = ""
 

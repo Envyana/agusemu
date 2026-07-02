@@ -4,6 +4,7 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD="$HERE/build/appimage"
 APPDIR="$BUILD/AgusEmu.AppDir"
 UMU_URL="${UMU_URL:-https://github.com/Open-Wine-Components/umu-launcher/releases/download/1.4.0/umu-launcher-1.4.0-zipapp.tar}"
+WINETRICKS_URL="${WINETRICKS_URL:-https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks}"
 APPIMAGETOOL_URL="${APPIMAGETOOL_URL:-https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage}"
 
 rm -rf "$BUILD"
@@ -20,6 +21,10 @@ tar -xf "$BUILD/umu.tar" -C "$BUILD"
 cp "$BUILD/umu/umu-run" "$APPDIR/usr/bin/umu-run"
 chmod +x "$APPDIR/usr/bin/umu-run"
 
+# 2b) Bundel winetricks (satu shell script) agar fitur komponen selalu jalan
+curl -L "$WINETRICKS_URL" -o "$APPDIR/usr/bin/winetricks"
+chmod +x "$APPDIR/usr/bin/winetricks"
+
 # 3) desktop + ikon (PNG logo AE)
 cp "$HERE/packaging/AgusEmu.desktop" "$APPDIR/usr/share/applications/"
 cp "$HERE/packaging/AgusEmu.desktop" "$APPDIR/AgusEmu.desktop"
@@ -35,6 +40,7 @@ HERE="$(dirname "$(readlink -f "$0")")"
 export PATH="$HERE/usr/bin:$PATH"
 export PYTHONPATH="$HERE/usr/lib/agusemu:${PYTHONPATH:-}"
 export AGUSEMU_UMU_RUN="$HERE/usr/bin/umu-run"
+export AGUSEMU_WINETRICKS="$HERE/usr/bin/winetricks"
 exec python3 -m agusemu.main "$@"
 RUNEOF
 chmod +x "$APPDIR/AppRun"

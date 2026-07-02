@@ -12,13 +12,14 @@ from ..models import App  # noqa: E402
 
 class DetailView(Gtk.Box):
     def __init__(self, on_launch, on_edit, on_winetricks,
-                 on_winecfg, on_shortcut, on_remove):
+                 on_winecfg, on_shortcut, on_remove, on_open_prefix):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=18,
                          margin_top=24, margin_bottom=24,
                          margin_start=24, margin_end=24)
         self._app: App | None = None
         self._cb = dict(launch=on_launch, edit=on_edit, winetricks=on_winetricks,
-                        winecfg=on_winecfg, shortcut=on_shortcut, remove=on_remove)
+                        winecfg=on_winecfg, shortcut=on_shortcut, remove=on_remove,
+                        open_prefix=on_open_prefix)
 
         self.title = Gtk.Label(xalign=0)
         self.title.add_css_class("title-1")
@@ -39,6 +40,7 @@ class DetailView(Gtk.Box):
         self.append(group)
         for key, label in [("winetricks", "Winetricks / Components"),
                            ("winecfg", "Open winecfg"),
+                           ("open_prefix", "Open Prefix Folder"),
                            ("shortcut", "Create Menu Shortcut"),
                            ("edit", "Edit"),
                            ("remove", "Remove")]:

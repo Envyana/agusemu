@@ -115,6 +115,12 @@ class AddAppDialog(Adw.Dialog):
         self.dxvk_row.set_active(app.dxvk_enabled if app else True)
         group.add(self.dxvk_row)
 
+        self.nvapi_row = Adw.SwitchRow(
+            title="NVIDIA support (NVAPI/CUDA)",
+            subtitle="Expose the NVIDIA GPU to apps that read it")
+        self.nvapi_row.set_active(app.nvapi_enabled if app else False)
+        group.add(self.nvapi_row)
+
         toolbar.set_content(group)
         self.set_child(toolbar)
 
@@ -158,15 +164,17 @@ class AddAppDialog(Adw.Dialog):
         category = selected_category(self.category_row)
         args = self.args_row.get_text()
         dxvk = self.dxvk_row.get_active()
+        nvapi = self.nvapi_row.get_active()
         if self._app:
             app = self._app.with_changes(name=name, exe_path=self._exe_path,
                                          runtime=runtime, args=args,
-                                         dxvk_enabled=dxvk, category=category)
+                                         dxvk_enabled=dxvk, nvapi_enabled=nvapi,
+                                         category=category)
         else:
             app_id = make_app_id(name)
             app = App(id=app_id, name=name, exe_path=self._exe_path, runtime=runtime,
                       prefix=str(config.prefixes_dir() / app_id), args=args,
-                      dxvk_enabled=dxvk, category=category,
+                      dxvk_enabled=dxvk, nvapi_enabled=nvapi, category=category,
                       created_at=_dt.date.today().isoformat())
         self._on_save(app)
         self.close()

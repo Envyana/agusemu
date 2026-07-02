@@ -26,9 +26,12 @@ def _stream(cmd, env, on_output, runner) -> int:
 def run_winetricks(app: App, runtime: Runtime, verbs: list[str],
                    on_output=None, runner=subprocess.Popen) -> int:
     umu_run = deps.require_umu_run()
-    winetricks = deps.find_winetricks()
-    if not winetricks:
-        raise FileNotFoundError("winetricks tidak ditemukan di PATH.")
+    try:
+        winetricks = deps.ensure_winetricks(on_status=on_output)
+    except OSError as exc:
+        raise FileNotFoundError(
+            "winetricks tidak ditemukan di PATH dan gagal diunduh "
+            f"({exc}). Pasang winetricks atau periksa koneksi internet.")
     cmd, env = winetricks_command(app, runtime, verbs, umu_run, winetricks)
     return _stream(cmd, env, on_output, runner)
 
