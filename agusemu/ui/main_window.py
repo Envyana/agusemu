@@ -354,7 +354,8 @@ class MainWindow(Adw.ApplicationWindow):
                                                 rt, verbs, on_output=out)
             self._run_logged(f"Winetricks: {app.name}", app.id + "-winetricks", target)
 
-        WinetricksDialog(app=app, runtime=None, on_run=on_run).present(self)
+        WinetricksDialog(app=app, runtime=None, on_run=on_run,
+                         installed=winetools.installed_verbs(app)).present(self)
 
     def _run_winecfg(self, app):
         from .. import runtimes as rt_mod, winetools

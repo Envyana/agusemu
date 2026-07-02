@@ -11,9 +11,10 @@ PRESETS = ["corefonts", "vcrun2019", "dotnet48", "d3dcompiler_47", "dxvk"]
 
 
 class WinetricksDialog(Adw.Dialog):
-    def __init__(self, app, runtime, on_run):
+    def __init__(self, app, runtime, on_run, installed=None):
         super().__init__()
         self._on_run = on_run
+        self._installed = set(installed or ())
         self.set_title("Winetricks / Components")
         self.set_content_width(460)
 
@@ -30,6 +31,12 @@ class WinetricksDialog(Adw.Dialog):
         self._switches = {}
         for verb in PRESETS:
             row = Adw.SwitchRow(title=verb)
+            if verb in self._installed:
+                # Komponen yang sudah terpasang: tampilkan aktif & terkunci
+                # agar tidak lagi "terlihat off" dan tidak dijalankan ulang.
+                row.set_active(True)
+                row.set_sensitive(False)
+                row.set_subtitle("Already installed")
             group.add(row)
             self._switches[verb] = row
         self.custom = Adw.EntryRow(title="Extra verbs (space-separated)")
@@ -39,7 +46,10 @@ class WinetricksDialog(Adw.Dialog):
         self.set_child(toolbar)
 
     def _collect_verbs(self):
-        verbs = [v for v, row in self._switches.items() if row.get_active()]
+        # Hanya verb yang di-toggle pengguna (baris yang aktif & masih bisa
+        # diubah); yang sudah terpasang/terkunci dilewati.
+        verbs = [v for v, row in self._switches.items()
+                 if row.get_active() and row.get_sensitive()]
         return verbs + self.custom.get_text().split()
 
     def _on_run_clicked(self, _btn):

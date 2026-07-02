@@ -2,7 +2,7 @@
 import io
 import shutil
 
-from agusemu import deps, launcher
+from agusemu import deps, launcher, winetools
 from agusemu.models import App, Runtime
 
 
@@ -69,6 +69,17 @@ def test_ensure_winetricks_downloads_when_missing(tmp_path, monkeypatch):
     # Panggilan kedua memakai salinan terkelola tanpa unduh ulang.
     assert deps.ensure_winetricks(opener=fake_opener) == path
     assert len(calls) == 1
+
+
+def test_installed_verbs_reads_log(tmp_path):
+    (tmp_path / "winetricks.log").write_text(
+        "corefonts\nvcrun2019\nremove_mono internal\n")
+    verbs = winetools.installed_verbs(_app(prefix=str(tmp_path)))
+    assert {"corefonts", "vcrun2019", "remove_mono"} <= verbs
+
+
+def test_installed_verbs_missing_log_is_empty(tmp_path):
+    assert winetools.installed_verbs(_app(prefix=str(tmp_path))) == set()
 
 
 def test_ensure_winetricks_prefers_system_binary(tmp_path, monkeypatch):

@@ -2,9 +2,27 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 from . import deps, launcher
 from .models import App, Runtime
+
+
+def installed_verbs(app: App) -> set[str]:
+    """Verb winetricks yang sudah terpasang, dibaca dari winetricks.log.
+
+    winetricks mencatat setiap verb yang sukses (satu per baris, verb =
+    kata pertama). Dipakai UI agar komponen terpasang tidak tampil off
+    dan tidak dijalankan ulang tanpa perlu.
+    """
+    prefix = Path(app.prefix)
+    for log in (prefix / "winetricks.log", prefix / "pfx" / "winetricks.log"):
+        try:
+            text = log.read_text()
+        except OSError:
+            continue
+        return {line.split()[0] for line in text.splitlines() if line.split()}
+    return set()
 
 
 def winetricks_command(app: App, runtime: Runtime, verbs: list[str],
