@@ -2,7 +2,7 @@
 import io
 import shutil
 
-from agusemu import deps, launcher, winetools
+from agusemu import deps, launcher, webview2, winetools
 from agusemu.models import App, Runtime
 
 
@@ -91,3 +91,35 @@ def test_ensure_winetricks_prefers_system_binary(tmp_path, monkeypatch):
         raise AssertionError("tidak boleh mengunduh bila sudah ada di PATH")
 
     assert deps.ensure_winetricks(opener=fail_opener) == "/usr/bin/winetricks"
+
+
+# --- WebView2 installer ---
+
+def test_webview2_downloads_and_caches(tmp_path, monkeypatch):
+    monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("AGUSEMU_WEBVIEW2_INSTALLER", raising=False)
+    calls = []
+
+    def fake_opener(url, timeout=0):
+        calls.append(url)
+        return Resp(b"MZ fake installer")
+
+    p = webview2.installer_path(opener=fake_opener)
+    assert calls == [webview2.BOOTSTRAPPER_URL]
+    assert p == tmp_path / "tools" / "MicrosoftEdgeWebview2Setup.exe"
+    assert p.read_bytes() == b"MZ fake installer"
+    # Panggilan kedua memakai cache, tanpa unduh ulang.
+    webview2.installer_path(opener=fake_opener)
+    assert len(calls) == 1
+
+
+def test_webview2_env_override_skips_download(tmp_path, monkeypatch):
+    monkeypatch.setenv("AGUSEMU_DATA_DIR", str(tmp_path))
+    custom = tmp_path / "MyWebView2.exe"
+    custom.write_bytes(b"MZ")
+    monkeypatch.setenv("AGUSEMU_WEBVIEW2_INSTALLER", str(custom))
+
+    def fail_opener(url, timeout=0):
+        raise AssertionError("override harus dipakai tanpa mengunduh")
+
+    assert webview2.installer_path(opener=fail_opener) == custom

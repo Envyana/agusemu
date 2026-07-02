@@ -28,7 +28,7 @@ def test_detail_view_shows_app(tmp_path, monkeypatch):
     dv = DetailView(on_launch=lambda a: None, on_edit=lambda a: None,
                     on_winetricks=lambda a: None, on_winecfg=lambda a: None,
                     on_shortcut=lambda a: None, on_remove=lambda a: None,
-                    on_open_prefix=lambda a: None)
+                    on_open_prefix=lambda a: None, on_webview2=lambda a: None)
     dv.show_app(library.get_app("a-1"))
     assert dv is not None
 

@@ -221,7 +221,8 @@ class MainWindow(Adw.ApplicationWindow):
             on_winecfg=self._run_winecfg,
             on_shortcut=self._make_shortcut,
             on_remove=self._confirm_remove,
-            on_open_prefix=self._open_prefix)
+            on_open_prefix=self._open_prefix,
+            on_webview2=self._install_webview2)
 
     def _on_row_selected(self, _listbox, row):
         if row is None:
@@ -356,6 +357,23 @@ class MainWindow(Adw.ApplicationWindow):
 
         WinetricksDialog(app=app, runtime=None, on_run=on_run,
                          installed=winetools.installed_verbs(app)).present(self)
+
+    def _install_webview2(self, app):
+        from .. import launcher, runtimes as rt_mod, webview2
+
+        def target(out):
+            rt = rt_mod.ensure_runtime(app.runtime, on_status=out)
+            installer = webview2.installer_path(on_status=out)
+            out("Menjalankan installer WebView2 (silent)…")
+            tmp = App(id=app.id, name=app.name, exe_path=str(installer),
+                      runtime=rt.name, prefix=app.prefix,
+                      args=" ".join(webview2.INSTALL_ARGS))
+            code = launcher.launch(tmp, rt, on_output=out)
+            if code in (0, 3010):
+                out("[WebView2 terpasang — coba jalankan aplikasi lagi]")
+            return code
+
+        self._run_logged(f"WebView2: {app.name}", app.id + "-webview2", target)
 
     def _run_winecfg(self, app):
         from .. import runtimes as rt_mod, winetools
