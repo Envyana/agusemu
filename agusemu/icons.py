@@ -7,6 +7,7 @@ default icon. Never raises.
 from __future__ import annotations
 
 import io
+import mmap
 import struct
 from pathlib import Path
 
@@ -108,21 +109,24 @@ def _build_ico(group, icons) -> bytes | None:
 
 def extract_exe_icon(exe_path: str | Path, dest_png: str | Path) -> Path | None:
     try:
-        data = Path(exe_path).read_bytes()
-        secs, res_rva, _ = _sections(data)
-        if not secs or not res_rva:
-            return None
-        res_off = _rva_off(secs, res_rva)
-        if res_off is None:
-            return None
-        groups = _collect(data, secs, res_off, RT_GROUP_ICON)
-        icons = _collect(data, secs, res_off, RT_ICON)
-        if not groups or not icons:
-            return None
-        ico = _build_ico(next(iter(groups.values())), icons)
+        # mmap, bukan read_bytes(): exe game bisa berukuran multi-GB dan
+        # tidak boleh dimuat utuh ke RAM hanya untuk mengambil ikon.
+        with open(exe_path, "rb") as fh, \
+                mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ) as data:
+            secs, res_rva, _ = _sections(data)
+            if not secs or not res_rva:
+                return None
+            res_off = _rva_off(secs, res_rva)
+            if res_off is None:
+                return None
+            groups = _collect(data, secs, res_off, RT_GROUP_ICON)
+            icons = _collect(data, secs, res_off, RT_ICON)
+            if not groups or not icons:
+                return None
+            ico = _build_ico(next(iter(groups.values())), icons)
         if not ico:
             return None
-        from PIL import Image
+        from PIL import Image  # noqa: E402 — import malas, PIL opsional
         im = Image.open(io.BytesIO(ico))
         # pick largest available size
         if getattr(im, "ico", None):

@@ -19,6 +19,9 @@ class RuntimeManager(Adw.Dialog):
         self.set_content_width(560)
         self.set_content_height(560)
         self._installed_rows = []
+        self._available_rows = []
+        self._closed = False
+        self.connect("closed", self._on_closed)
 
         toolbar = Adw.ToolbarView()
         header = Adw.HeaderBar()
@@ -32,9 +35,10 @@ class RuntimeManager(Adw.Dialog):
         self.installed_group = Adw.PreferencesGroup(title="Installed")
         box.append(self.installed_group)
         self.available_group = Adw.PreferencesGroup(title="Available to download")
-        load = Gtk.Button(label="Load release list", valign=Gtk.Align.CENTER)
-        load.connect("clicked", self._on_load_releases)
-        self.available_group.set_header_suffix(load)
+        self._load_btn = Gtk.Button(label="Load release list",
+                                    valign=Gtk.Align.CENTER)
+        self._load_btn.connect("clicked", self._on_load_releases)
+        self.available_group.set_header_suffix(self._load_btn)
         box.append(self.available_group)
 
         scroll = Gtk.ScrolledWindow(child=box)
@@ -72,7 +76,23 @@ class RuntimeManager(Adw.Dialog):
 
         dialog.select_folder(self.get_root(), None, done)
 
+    def _on_closed(self, *_):
+        # Worker unduhan/fetch bisa selesai setelah dialog ditutup; callback
+        # idle tidak boleh lagi menyentuh widget yang sudah di-dispose.
+        self._closed = True
+
+    def _clear_available(self):
+        for row in self._available_rows:
+            self.available_group.remove(row)
+        self._available_rows = []
+
+    def _add_available_row(self, row):
+        self.available_group.add(row)
+        self._available_rows.append(row)
+
     def _on_load_releases(self, _btn):
+        self._load_btn.set_sensitive(False)
+
         def worker():
             try:
                 rels = runtimes.fetch_releases(limit=15)
@@ -83,10 +103,19 @@ class RuntimeManager(Adw.Dialog):
         threading.Thread(target=worker, daemon=True).start()
 
     def _add_available_error(self, msg):
-        self.available_group.add(Adw.ActionRow(title="Failed to load", subtitle=msg))
+        if self._closed:
+            return False
+        self._load_btn.set_sensitive(True)
+        self._clear_available()
+        self._add_available_row(
+            Adw.ActionRow(title="Failed to load", subtitle=msg))
         return False
 
     def _populate_releases(self, rels):
+        if self._closed:
+            return False
+        self._load_btn.set_sensitive(True)
+        self._clear_available()
         installed = {r.name for r in runtimes.scan_runtimes()}
         for rel in rels:
             row = Adw.ActionRow(title=rel.tag)
@@ -96,7 +125,7 @@ class RuntimeManager(Adw.Dialog):
                 btn = Gtk.Button(label="Download", valign=Gtk.Align.CENTER)
                 btn.connect("clicked", self._on_download, rel, row)
                 row.add_suffix(btn)
-            self.available_group.add(row)
+            self._add_available_row(row)
         return False
 
     def _on_download(self, btn, rel, row):
@@ -105,14 +134,25 @@ class RuntimeManager(Adw.Dialog):
         row.add_suffix(progress)
 
         def on_progress(done, total):
-            GLib.idle_add(progress.set_fraction, (done / total) if total else 0.0)
+            def apply(fraction):
+                # Dicek di main thread: dialog bisa saja ditutup di antara
+                # penjadwalan idle dan eksekusinya.
+                if not self._closed:
+                    progress.set_fraction(fraction)
+                return False
+            GLib.idle_add(apply, (done / total) if total else 0.0)
+
+        def apply_result(subtitle):
+            if not self._closed:
+                row.set_subtitle(subtitle)
+                self._refresh_installed()
+            return False
 
         def worker():
             try:
                 runtimes.download_runtime(rel, progress=on_progress)
-                GLib.idle_add(row.set_subtitle, "Downloaded")
+                GLib.idle_add(apply_result, "Downloaded")
             except Exception as exc:
-                GLib.idle_add(row.set_subtitle, f"Failed: {exc}")
-            GLib.idle_add(self._refresh_installed)
+                GLib.idle_add(apply_result, f"Failed: {exc}")
 
         threading.Thread(target=worker, daemon=True).start()

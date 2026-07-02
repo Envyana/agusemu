@@ -71,6 +71,12 @@ class InstallDialog(Adw.Dialog):
 
     def _on_install_clicked(self, _btn):
         name = self.name_row.get_text().strip()
+        self.name_row.remove_css_class("error")
+        self.exe_row.remove_css_class("error")
+        if not name:
+            self.name_row.add_css_class("error")
+        if not self._installer:
+            self.exe_row.add_css_class("error")
         if not name or not self._installer:
             return
         self._on_install(

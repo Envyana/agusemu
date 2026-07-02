@@ -64,6 +64,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.toast_overlay = Adw.ToastOverlay()
         self.toast_overlay.set_child(self.split)
         self.set_content(self.toast_overlay)
+        self._active_ops: set[str] = set()
         self.refresh_library()
 
     # --- layout helpers ---
@@ -173,23 +174,40 @@ class MainWindow(Adw.ApplicationWindow):
     # --- generic logged runner (tailing window; flood-proof) ---
     def _run_logged(self, title, log_id, target):
         from .log_window import LogWindow
+        if log_id in self._active_ops:
+            # Klik ganda: jangan jalankan dua proses di prefix yang sama dan
+            # jangan truncate log yang sedang di-tail jendela pertama.
+            self._toast(f"'{title}' is already running")
+            return
+        self._active_ops.add(log_id)
         logpath = config.logs_dir() / f"{log_id}.log"
         open(logpath, "w").close()
         win = LogWindow(title=title)
         win.tail_file(str(logpath))
         win.present()
 
+        def finish(code):
+            self._active_ops.discard(log_id)
+            # 3010 = ERROR_SUCCESS_REBOOT_REQUIRED dari msiexec: sukses.
+            if code not in (0, 3010):
+                self._toast(f"'{title}' failed (exit code {code}) — see log")
+            return False
+
         def worker():
-            with open(logpath, "a") as f:
-                def out(line):
-                    f.write(line + "\n")
-                    f.flush()
-                try:
-                    code = target(out)
-                except Exception as exc:
-                    out(f"[error] {exc}")
-                    code = -1
-                out(f"\n[finished] exit code = {code}")
+            code = -1
+            try:
+                with open(logpath, "a") as f:
+                    def out(line):
+                        f.write(line + "\n")
+                        f.flush()
+                    try:
+                        code = target(out)
+                    except Exception as exc:
+                        out(f"[error] {exc}")
+                        code = -1
+                    out(f"\n[finished] exit code = {code}")
+            finally:
+                GLib.idle_add(finish, code)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -228,6 +246,12 @@ class MainWindow(Adw.ApplicationWindow):
         else:
             library.add_app(app)
         self.refresh_library()
+        # Panel detail masih menampilkan (dan akan me-launch) data lama
+        # jika tidak ikut disegarkan setelah edit.
+        detail = getattr(self, "detail", None)
+        if detail is not None and detail._app is not None \
+                and detail._app.id == app.id:
+            detail.show_app(app)
 
     # --- install from installer ---
     def _open_install_dialog(self):
@@ -247,7 +271,13 @@ class MainWindow(Adw.ApplicationWindow):
                       runtime=rt.name, prefix=prefix, category=category)
             out("Running installer…")
             code = launcher.launch(tmp, rt, on_output=out)
-            GLib.idle_add(self._after_install, name, app_id, prefix, rt.name, category)
+            # Jangan minta pengguna memilih program terpasang jika
+            # installer-nya sendiri gagal/dibatalkan.
+            if code in (0, 3010):
+                GLib.idle_add(self._after_install, name, app_id, prefix,
+                              rt.name, category)
+            else:
+                out("[installer failed — nothing was added to the library]")
             return code
 
         self._run_logged(f"Install: {name}", app_id, target)
@@ -302,7 +332,10 @@ class MainWindow(Adw.ApplicationWindow):
         def target(out):
             rt = rt_mod.ensure_runtime(app.runtime, on_status=out)
             if app.runtime != rt.name:
-                library.update_app(app.with_changes(runtime=rt.name))
+                # set_runtime hanya menyentuh field runtime pada rekaman
+                # terkini — editan pengguna selama unduhan tidak tertimpa
+                # snapshot `app` yang basi.
+                library.set_runtime(app.id, rt.name)
                 GLib.idle_add(self.refresh_library)
             return launcher.launch(app.with_changes(runtime=rt.name), rt, on_output=out)
 
@@ -340,12 +373,23 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _make_shortcut(self, app):
         from .. import desktop, icons
-        icon = icons.extract_exe_icon(app.exe_path,
-                                      config.icons_dir() / f"{app.id}-exe.png")
-        icon_src = str(icon) if icon else (
-            app.icon or (str(LOGO_PATH) if LOGO_PATH.exists() else None))
-        desktop.create_shortcut(app, self._launch_exec(app), icon_src=icon_src)
-        self._toast(f"Shortcut '{app.name}' created")
+        launch_exec = self._launch_exec(app)
+
+        # Ekstraksi ikon membaca & mem-parse seluruh .exe — pada game
+        # berukuran GB hal ini membekukan UI jika dikerjakan di main thread.
+        def worker():
+            try:
+                icon = icons.extract_exe_icon(
+                    app.exe_path, config.icons_dir() / f"{app.id}-exe.png")
+                icon_src = str(icon) if icon else (
+                    app.icon or (str(LOGO_PATH) if LOGO_PATH.exists() else None))
+                desktop.create_shortcut(app, launch_exec, icon_src=icon_src)
+            except OSError as exc:
+                GLib.idle_add(self._toast, f"Failed to create shortcut: {exc}")
+                return
+            GLib.idle_add(self._toast, f"Shortcut '{app.name}' created")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _confirm_remove(self, app):
         dialog = Adw.AlertDialog(heading="Remove application?",

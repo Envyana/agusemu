@@ -134,7 +134,24 @@ class AddAppDialog(Adw.Dialog):
         dialog.open(self.get_root(), None, done)
 
     def _on_save_clicked(self, _btn):
+        import shlex
         name = self.name_row.get_text().strip()
+        # Tombol Save tidak boleh diam tanpa reaksi: tandai field yang
+        # bermasalah agar pengguna tahu kenapa dialog tidak tertutup.
+        self.name_row.remove_css_class("error")
+        self.exe_row.remove_css_class("error")
+        self.args_row.remove_css_class("error")
+        if not name:
+            self.name_row.add_css_class("error")
+        if not self._exe_path:
+            self.exe_row.add_css_class("error")
+        try:
+            shlex.split(self.args_row.get_text())
+        except ValueError:
+            self.args_row.add_css_class("error")
+            self.args_row.set_title("Arguments (invalid quoting)")
+            return
+        self.args_row.set_title("Arguments (optional)")
         if not name or not self._exe_path:
             return
         runtime = selected_runtime_name(self.runtime_row, self._runtimes)

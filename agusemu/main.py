@@ -23,7 +23,11 @@ def _run_headless(app_id: str) -> int:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
     if "--run" in argv:
-        return _run_headless(argv[argv.index("--run") + 1])
+        idx = argv.index("--run")
+        if idx + 1 >= len(argv):
+            print("Usage: agusemu --run <app-id>", file=sys.stderr)
+            return 2
+        return _run_headless(argv[idx + 1])
 
     import gi
     gi.require_version("Gtk", "4.0")

@@ -18,12 +18,9 @@ def winecfg_command(app: App, runtime: Runtime, umu_run: str) -> tuple[list[str]
 
 def _stream(cmd, env, on_output, runner) -> int:
     proc = runner(cmd, env=env, stdout=subprocess.PIPE,
-                  stderr=subprocess.STDOUT, text=True, bufsize=1)
-    if proc.stdout is not None:
-        for line in proc.stdout:
-            if on_output:
-                on_output(line.rstrip("\n"))
-    return proc.wait()
+                  stderr=subprocess.STDOUT, encoding="utf-8",
+                  errors="replace", bufsize=1)
+    return launcher.stream_and_wait(proc, on_output)
 
 
 def run_winetricks(app: App, runtime: Runtime, verbs: list[str],

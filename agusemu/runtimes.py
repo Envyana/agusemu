@@ -5,8 +5,10 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import tarfile
 import tempfile
+import threading
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,11 +80,28 @@ def fetch_releases(limit: int = 20, opener=urllib.request.urlopen) -> list["Rele
     target = req if opener is urllib.request.urlopen else RELEASES_API
     with opener(target, timeout=30) as resp:
         payload = json.loads(resp.read().decode())
+    if not isinstance(payload, list):
+        # GitHub mengembalikan objek error (mis. rate limit), bukan daftar rilis.
+        msg = payload.get("message", "respons tidak dikenal") \
+            if isinstance(payload, dict) else "respons tidak dikenal"
+        raise RuntimeError(f"GitHub API: {msg}")
     return parse_releases(payload)[:limit]
 
 
-def verify_sha512(file_path: Path, checksum_text: str) -> bool:
-    expected = checksum_text.strip().split()[0].lower()
+def verify_sha512(file_path: Path, checksum_text: str,
+                  asset_name: str = "") -> bool:
+    lines = [ln.split() for ln in checksum_text.strip().splitlines() if ln.split()]
+    expected = ""
+    if asset_name:
+        # File checksum bisa berisi beberapa baris; cocokkan dengan nama aset.
+        for parts in lines:
+            if len(parts) >= 2 and parts[-1].lstrip("*") == asset_name:
+                expected = parts[0].lower()
+                break
+    if not expected and lines:
+        expected = lines[0][0].lower()
+    if not expected:
+        return False
     h = hashlib.sha512()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(1 << 20), b""):
@@ -99,17 +118,34 @@ def _is_within(base: Path, target: Path) -> bool:
 
 
 def extract_tarball(tarball_path: Path, dest_dir: Path) -> Path:
+    """Ekstrak ke staging tersembunyi lalu pindahkan secara atomik.
+
+    Kegagalan di tengah ekstraksi (disk penuh, arsip terpotong, proses mati)
+    tidak boleh meninggalkan folder runtime setengah jadi di `dest_dir` yang
+    kemudian lolos `is_runtime_dir()` dan dianggap terpasang.
+    """
     dest_dir = Path(dest_dir)
-    with tarfile.open(tarball_path) as tar:
-        members = tar.getmembers()
-        top_levels = {m.name.split("/", 1)[0] for m in members if m.name}
-        for m in members:
-            if not _is_within(dest_dir, dest_dir / m.name):
-                raise RuntimeError(f"Entri tar tidak aman: {m.name}")
-        tar.extractall(dest_dir)
-    if len(top_levels) != 1:
-        raise RuntimeError("Arsip runtime tidak memiliki satu folder root")
-    return dest_dir / top_levels.pop()
+    staging = Path(tempfile.mkdtemp(dir=dest_dir, prefix=".extract-"))
+    try:
+        with tarfile.open(tarball_path) as tar:
+            members = tar.getmembers()
+            top_levels = {m.name.split("/", 1)[0] for m in members if m.name}
+            for m in members:
+                if not _is_within(staging, staging / m.name):
+                    raise RuntimeError(f"Entri tar tidak aman: {m.name}")
+            # Filter "data" juga menolak symlink/hardlink yang menunjuk
+            # keluar arsip serta device node.
+            tar.extractall(staging, filter="data")
+        if len(top_levels) != 1:
+            raise RuntimeError("Arsip runtime tidak memiliki satu folder root")
+        top = top_levels.pop()
+        final = dest_dir / top
+        if final.exists():
+            shutil.rmtree(final)
+        os.replace(staging / top, final)
+        return final
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def _download_to(url: str, dest: Path, opener, progress=None) -> None:
@@ -130,23 +166,35 @@ def _download_to(url: str, dest: Path, opener, progress=None) -> None:
                     progress(done, total)
 
 
+# Dua thread (Runtime Manager + launch "Automatic") tidak boleh mengunduh/
+# mengekstrak rilis yang sama secara bersamaan.
+_DOWNLOAD_LOCK = threading.Lock()
+
+
 def download_runtime(release: "Release", progress=None,
                      opener=urllib.request.urlopen) -> Runtime:
-    rt_dir = config.runtimes_dir()
-    fd, tmp_name = tempfile.mkstemp(dir=rt_dir, suffix=".tar.gz")
-    os.close(fd)
-    tmp = Path(tmp_name)
-    try:
-        _download_to(release.tarball_url, tmp, opener, progress)
-        if release.checksum_url:
-            with opener(release.checksum_url, timeout=30) as resp:
-                checksum_text = resp.read().decode()
-            if not verify_sha512(tmp, checksum_text):
-                raise RuntimeError(f"Checksum gagal untuk {release.tag}")
-        folder = extract_tarball(tmp, rt_dir)
-    finally:
-        if tmp.exists():
-            tmp.unlink()
+    with _DOWNLOAD_LOCK:
+        rt_dir = config.runtimes_dir()
+        existing = rt_dir / release.tag if release.tag else None
+        if existing is not None and is_runtime_dir(existing):
+            # Sudah diunduh thread lain selagi kita menunggu lock.
+            return Runtime(name=existing.name, path=str(existing),
+                           source="managed")
+        fd, tmp_name = tempfile.mkstemp(dir=rt_dir, suffix=".tar.gz")
+        os.close(fd)
+        tmp = Path(tmp_name)
+        try:
+            _download_to(release.tarball_url, tmp, opener, progress)
+            if release.checksum_url:
+                with opener(release.checksum_url, timeout=30) as resp:
+                    checksum_text = resp.read().decode()
+                asset = release.tarball_url.rsplit("/", 1)[-1]
+                if not verify_sha512(tmp, checksum_text, asset_name=asset):
+                    raise RuntimeError(f"Checksum gagal untuk {release.tag}")
+            folder = extract_tarball(tmp, rt_dir)
+        finally:
+            if tmp.exists():
+                tmp.unlink()
     return Runtime(name=folder.name, path=str(folder), source="managed")
 
 

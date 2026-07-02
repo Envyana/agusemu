@@ -47,7 +47,11 @@ def main(argv: list[str] | None = None) -> int:
         app_id = make_app_id(ns.name)
         app = App(id=app_id, name=ns.name, exe_path=ns.exe, runtime=ns.runtime,
                   prefix=str(config.prefixes_dir() / app_id), created_at=_today())
-        library.add_app(app)
+        try:
+            library.add_app(app)
+        except ValueError as exc:
+            print(exc)
+            return 1
         print(app_id)
         return 0
 

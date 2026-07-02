@@ -1,6 +1,8 @@
 """Log window that tails a file at a fixed rate (flood-proof)."""
 from __future__ import annotations
 
+import codecs
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -33,22 +35,40 @@ class LogWindow(Adw.Window):
         mean a very chatty process can't flood the GTK main loop."""
         self._path = path
         self._pos = 0
+        # Baca sebagai bytes + decoder inkremental: output Wine bisa berisi
+        # byte non-UTF-8; UnicodeDecodeError di dalam callback timer akan
+        # mematikan tailing secara permanen.
+        self._decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        self._end_mark = self.buffer.create_mark(
+            None, self.buffer.get_end_iter(), False)
         self._timer = GLib.timeout_add(500, self._poll)
 
     def _poll(self):
         if not self._path:
             return False
         try:
-            with open(self._path) as f:
+            with open(self._path, "rb") as f:
+                f.seek(0, 2)
+                size = f.tell()
+                if size < self._pos:
+                    # File di-truncate (mis. operasi baru menimpa log lama):
+                    # mulai lagi dari awal, jangan diam membeku. Decoder ikut
+                    # di-reset agar sisa byte multi-byte lama tidak bocor.
+                    self._pos = 0
+                    self._decoder = codecs.getincrementaldecoder(
+                        "utf-8")("replace")
                 f.seek(self._pos)
                 data = f.read()
                 self._pos = f.tell()
         except OSError:
             return True
         if data:
-            self.buffer.insert(self.buffer.get_end_iter(), data)
-            mark = self.buffer.create_mark(None, self.buffer.get_end_iter(), False)
-            self._view.scroll_mark_onscreen(mark)
+            # NUL valid di UTF-8 tapi ditolak GtkTextBuffer.
+            text = self._decoder.decode(data).replace("\x00", "�")
+            if text:
+                self.buffer.insert(self.buffer.get_end_iter(), text)
+                self.buffer.move_mark(self._end_mark, self.buffer.get_end_iter())
+                self._view.scroll_mark_onscreen(self._end_mark)
         return True
 
     def _on_close(self, *_):
